@@ -141,14 +141,55 @@ test(regression): add 5 scenarios for get_indicator
 docs(handoff): update tool count
 ```
 
-### PR 자가 점검 체크리스트
+### PR 자가 점검 체크리스트 (v0.2 강화)
 
+**🛡 push 전 필수 — `npm run test` 실행 후 다음 3줄 모두 확인**:
+- [ ] `Test Files N passed (N)` — 모든 파일 통과
+- [ ] `Tests N passed (N)` — 모든 시나리오 통과
+- [ ] **`Errors 0`** (또는 Errors 줄이 *아예 없음*) — unhandled rejection 없음
+
+> ⚠️ **양보 불가 — `Tests passed`만 봐서는 안 됩니다.** Vitest는 `Errors`도 별도 카운트하며 *exit code 1* 반환. WO-005(unhandled rejection)·WO-008(disclaimer false positive) 두 사례에서 학습.
+
+**기타 점검**:
 - [ ] `npm run typecheck` 통과
-- [ ] `npm run test` 통과
 - [ ] 새 도구는 `buildResponse()` 또는 `buildNoData()` 사용
 - [ ] `last_updated_at`을 API 응답값에서 가져옴 (현재 시각 fallback은 `cycle === Q/S` 같은 예외만)
 - [ ] 절대 금지 7항목 중 해당 없음
+- [ ] `serializeForMcp` 응답 검증 시 disclaimer는 *반드시 분리*해서 검사 (`splitSerialized` 패턴, WO-008 참조)
+- [ ] **회귀 시나리오 30/30 모두 통과** — v0.2 이상 유지
 - [ ] `wiki/korea-finance-mcp/handoff.md` §11 진행 상태 표 갱신 (PR 본문에 mywiki 측 diff 첨부)
+
+### 회귀 테스트 작성 가이드 (v0.2 추가)
+
+**fake timer + reject 조합** (WO-005 패턴):
+```typescript
+// ❌ unhandled rejection 위험
+const promise = executeXxx(...);
+await vi.advanceTimersByTimeAsync(300);
+await expect(promise).rejects.toThrow(...);
+
+// ✅ promise 직후 expect로 먼저 wrapping
+const promise = executeXxx(...);
+const assertion = expect(promise).rejects.toThrow(...);
+await vi.advanceTimersByTimeAsync(300);
+await assertion;
+```
+
+**serializeForMcp 검증 시** (WO-008 패턴):
+```typescript
+// ❌ disclaimer의 "추천이 아닙니다"가 정규식에 잡힘 (false positive)
+const text = serializeForMcp(res).content[0]!.text;
+expect(text).not.toMatch(/(추천|매수|매도|...)/);
+
+// ✅ body와 disclaimer 분리 후 본문만 검사
+function splitSerialized(s: string) {
+  const parts = s.split(/\n\n---\n/);
+  return { body: parts[0] ?? "", disclaimer: parts[1] ?? "" };
+}
+const { body, disclaimer } = splitSerialized(serializeForMcp(res).content[0]!.text);
+expect(body).not.toMatch(/(추천|매수|매도|...)/);
+expect(disclaimer).toContain("추천이 아닙니다"); // 의도된 강화 검증
+```
 
 ---
 
