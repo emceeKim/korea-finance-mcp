@@ -172,8 +172,11 @@ function addDays(d: Date, delta: number): Date {
 /**
  * ECOS의 TIME 문자열 ("202405" / "20260525" / "2026Q1")을 ISO 8601로 변환.
  * 추측 금지 — 변환 불가하면 현재 시각 사용 (추후 v0.2에서 정밀화).
+ *
+ * @public Layer A 도구 간 공유용. lib/* 수정을 피하기 위한 도구 영역 helper export.
+ *   v0.3에서 lib/ecos-time.ts로 이관 검토.
  */
-function ecosTimeToIso(time: string, cycle: EcosCycle): string {
+export function ecosTimeToIso(time: string, cycle: EcosCycle): string {
   if (cycle === "D" && /^\d{8}$/.test(time)) {
     return `${time.slice(0, 4)}-${time.slice(4, 6)}-${time.slice(6, 8)}T00:00:00Z`;
   }

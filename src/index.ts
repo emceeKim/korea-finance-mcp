@@ -30,6 +30,11 @@ import {
   executeSearchIndicator,
   SearchIndicatorInputSchema,
 } from "./tools/search_indicator.js";
+import {
+  getTimeseriesTool,
+  executeGetTimeseries,
+  GetTimeseriesInputSchema,
+} from "./tools/get_timeseries.js";
 
 // ============================================================
 // 환경변수 로드 (.env)
@@ -61,8 +66,15 @@ const TOOLS: ToolDefinition[] = [
     execute: async (input) =>
       executeSearchIndicator(SearchIndicatorInputSchema.parse(input)),
   },
+  {
+    name: getTimeseriesTool.name,
+    description: getTimeseriesTool.description,
+    inputSchema: getTimeseriesTool.inputSchema,
+    execute: async (input) =>
+      executeGetTimeseries(GetTimeseriesInputSchema.parse(input)),
+  },
   // 👇 새 도구는 이 아래에 추가
-  // Layer A 잔여: get_timeseries / compare_indicators / get_dashboard
+  // Layer A 잔여: compare_indicators / get_dashboard
 ];
 
 // ============================================================
