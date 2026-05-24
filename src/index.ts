@@ -35,6 +35,11 @@ import {
   executeGetTimeseries,
   GetTimeseriesInputSchema,
 } from "./tools/get_timeseries.js";
+import {
+  compareIndicatorsTool,
+  executeCompareIndicators,
+  CompareIndicatorsInputSchema,
+} from "./tools/compare_indicators.js";
 
 // ============================================================
 // 환경변수 로드 (.env)
@@ -73,8 +78,15 @@ const TOOLS: ToolDefinition[] = [
     execute: async (input) =>
       executeGetTimeseries(GetTimeseriesInputSchema.parse(input)),
   },
+  {
+    name: compareIndicatorsTool.name,
+    description: compareIndicatorsTool.description,
+    inputSchema: compareIndicatorsTool.inputSchema,
+    execute: async (input) =>
+      executeCompareIndicators(CompareIndicatorsInputSchema.parse(input)),
+  },
   // 👇 새 도구는 이 아래에 추가
-  // Layer A 잔여: compare_indicators / get_dashboard
+  // Layer A 잔여: get_dashboard (v1.0 5/5 완성 직전)
 ];
 
 // ============================================================
