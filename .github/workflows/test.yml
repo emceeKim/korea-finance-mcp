@@ -1,0 +1,141 @@
+# korea-finance-mcp — CI: typecheck + 회귀 테스트
+#
+# 트리거:
+#   - main 브랜치 push
+#   - PR 생성·갱신
+#
+# 양보 불가:
+#   - 환각 회귀(tests/regression/**)가 1건이라도 실패하면 머지 차단
+#   - TypeScript strict 모드 위반도 머지 차단
+#
+# Secrets (Repository Settings → Secrets and variables → Actions):
+#   - ECOS_API_KEY (선택) — e2e 테스트용. 없으면 e2e만 skip.
+#
+# @see CONTRIBUTING.md §1.1 환각 방지 5규칙
+# @see wiki/korea-finance-mcp/hallucination-tests.md
+
+name: test
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+# 동일 PR에 연속 push 시 이전 실행 취소 (토큰 절감 §6.1)
+concurrency:
+  group: test-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  typecheck:
+    name: TypeScript strict check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: TypeScript strict check
+        run: npm run typecheck
+
+  regression:
+    name: 환각 방지 회귀 테스트
+    runs-on: ubuntu-latest
+    needs: typecheck
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run regression suite
+        env:
+          # ECOS_API_KEY가 있으면 e2e 활성, 없으면 단위 테스트만 (setup.ts에서 skip 처리)
+          ECOS_API_KEY: ${{ secrets.ECOS_API_KEY }}
+        run: npm run test:regression
+
+      - name: Verify regression coverage
+        # 회귀 시나리오 최소 개수 검증 (현재 10건, v0.2 목표 30건)
+        # hallucination-tests.md §2와 정합성 강제
+        run: |
+          COUNT=$(grep -rE "^\s*it\(" tests/regression/ | wc -l)
+          echo "Regression scenarios found: $COUNT"
+          if [ "$COUNT" -lt 10 ]; then
+            echo "❌ 회귀 시나리오 10건 미만 — 환각 안전망 약화"
+            exit 1
+          fi
+          echo "✅ 회귀 시나리오 $COUNT건 확인 (목표 v0.2: 30건)"
+
+  guard-no-forbidden-tools:
+    name: 절대 금지 7항목 코드 검사
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Scan for forbidden tool names
+        # CONTRIBUTING.md §1.2 절대 금지 7항목이 src/tools/ 안에 등장하면 차단
+        # 단순 grep — 주석에 등장하는 건 허용 (예: 의도 설명)
+        run: |
+          set -e
+          FORBIDDEN=(
+            "place_order"
+            "recommend_stocks"
+            "predict_price"
+            "get_target_price"
+            "optimize_portfolio"
+            "get_registry"
+            "get_kb_price"
+          )
+          FAIL=0
+          for tool in "${FORBIDDEN[@]}"; do
+            # tool 이름이 파일명 또는 export로 등장하면 fail
+            if grep -rEn "(export\s+(const|function|async\s+function)\s+(${tool}|execute$(echo $tool | sed 's/_\(.\)/\U\1/g')))|name:\s*[\"']${tool}[\"']" src/tools/ 2>/dev/null; then
+              echo "❌ 절대 금지 도구 발견: ${tool}"
+              FAIL=1
+            fi
+            # 파일명 자체가 금지 도구면 fail
+            if ls "src/tools/${tool}.ts" 2>/dev/null; then
+              echo "❌ 절대 금지 도구 파일 발견: src/tools/${tool}.ts"
+              FAIL=1
+            fi
+          done
+          if [ "$FAIL" -eq 1 ]; then
+            echo ""
+            echo "위반 사유: CONTRIBUTING.md §1.2 — 자본시장법·개인정보·라이선스"
+            exit 1
+          fi
+          echo "✅ 절대 금지 7항목 통과"
+
+  guard-disclaimer:
+    name: 면책조항 자동 부착 검증
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Ensure all tools use buildResponse/buildNoData
+        # src/tools/*.ts 안에서 ToolResponse를 직접 return하는 코드는 금지
+        # 반드시 buildResponse() 또는 buildNoData()를 거쳐야 면책 자동 부착
+        run: |
+          set -e
+          # tools/_template.ts나 README는 예외
+          VIOLATIONS=$(grep -rEn "return\s+\{[^}]*disclaimer:" src/tools/ 2>/dev/null || true)
+          if [ -n "$VIOLATIONS" ]; then
+            echo "❌ disclaimer를 직접 작성한 도구 발견 (buildResponse 우회):"
+            echo "$VIOLATIONS"
+            echo ""
+            echo "수정: buildResponse() 또는 buildNoData()를 사용하세요 (CONTRIBUTING §1.1 #1)"
+            exit 1
+          fi
+          echo "✅ 모든 도구가 buildResponse/buildNoData 경유"

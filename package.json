@@ -1,0 +1,52 @@
+{
+  "name": "korea-finance-mcp",
+  "version": "0.1.0",
+  "description": "Korea Finance MCP — ECOS · Real Estate · DART · KRX (Model Context Protocol server)",
+  "type": "module",
+  "main": "dist/index.js",
+  "bin": {
+    "korea-finance-mcp": "dist/index.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsx watch src/index.ts",
+    "start": "node dist/index.js",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:regression": "vitest run tests/regression",
+    "typecheck": "tsc --noEmit",
+    "prepublishOnly": "npm run build"
+  },
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "korea",
+    "finance",
+    "ecos",
+    "bok",
+    "dart",
+    "krx",
+    "real-estate",
+    "anthropic"
+  ],
+  "author": "MC AI Labs <mckim890@gmail.com>",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/emceeKim/korea-finance-mcp.git"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.0",
+    "zod": "^3.23.0",
+    "dotenv": "^16.4.5"
+  },
+  "devDependencies": {
+    "@types/node": "^20.14.0",
+    "typescript": "^5.5.0",
+    "tsx": "^4.15.0",
+    "vitest": "^1.6.0"
+  }
+}
