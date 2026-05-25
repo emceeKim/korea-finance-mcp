@@ -42,7 +42,7 @@ describe("get_realestate_price 회귀 re-08~13", () => {
       property_type: "apt",
     });
     const result = await executeGetRealEstatePrice(input);
-    assertStandardResponse(result);
+    assertStandardResponse(result, { allowNoData: true });
 
     const data = (result as { data: { trades: Array<Record<string, unknown>>; meta: { data_count: number; region_name: string } } }).data;
     expect(data.meta.region_name).toContain("강남");
@@ -90,7 +90,7 @@ describe("get_realestate_price 회귀 re-08~13", () => {
       region_code: "11680", year_month: "202405",
     });
     const result = await executeGetRealEstatePrice(input);
-    assertStandardResponse(result);
+    assertStandardResponse(result, { allowNoData: true });
     expect((result as { data: unknown }).data).toBeNull();
   });
 
@@ -100,7 +100,7 @@ describe("get_realestate_price 회귀 re-08~13", () => {
       region_code: "11680", year_month: "202405",
     });
     const result = await executeGetRealEstatePrice(input);
-    assertStandardResponse(result);
+    assertStandardResponse(result, { allowNoData: true });
     expect((result as { data: unknown }).data).toBeNull();
   });
 
