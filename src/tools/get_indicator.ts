@@ -11,6 +11,7 @@
 import { z } from "zod";
 import { fetchEcosStatistic, parseEcosValue } from "../lib/ecos.js";
 import { buildResponse, buildNoData } from "../lib/response.js";
+import { KNOWN_INDICATORS } from "./search_indicator.js";
 import type { EcosCycle, EcosIndicatorPoint, ToolResponse } from "../types.js";
 
 // ============================================================
@@ -68,6 +69,18 @@ export async function executeGetIndicator(
 ): Promise<ToolResponse<EcosIndicatorPoint>> {
   const validated = GetIndicatorInputSchema.parse(input);
 
+  // ============================================================
+  // WO-070 (2026-05-25): KNOWN_INDICATORS 매칭 시 default_item_code1 자동 부착.
+  //
+  // 통념파괴: "LLM이 알아서 item_code1을 추론하면 된다" → 틀림. 그러면 우리 시스템의
+  //   "추측 금지 + KNOWN_INDICATORS 정적 사전" 헌법이 무력화된다. **서버 측에서**
+  //   다항목 통계를 식별·자동 부착하고, 응답값이 현실범위 밖이면 경고로 차단해야 진짜 차별화.
+  // ============================================================
+  const known = KNOWN_INDICATORS.find((k) => k.code === validated.indicator_code);
+  const effectiveItemCode1 =
+    validated.item_code1 ?? (known?.multi_item ? known.default_item_code1 : undefined);
+  const autoAttached = !validated.item_code1 && effectiveItemCode1 !== undefined;
+
   // 조회 기간 — 최근 12개 단위로 조회 후 가장 최신값 선택
   const { startDate, endDate } = computeRecentPeriod(validated.cycle);
 
@@ -76,7 +89,7 @@ export async function executeGetIndicator(
     cycle: validated.cycle,
     startDate,
     endDate,
-    itemCode1: validated.item_code1,
+    itemCode1: effectiveItemCode1,
   });
 
   const rows = raw.StatisticSearch?.row ?? [];
@@ -109,6 +122,24 @@ export async function executeGetIndicator(
     cycle: validated.cycle as EcosCycle,
   };
 
+  // WO-070 healthcheck: KNOWN_INDICATORS expected_range 검증
+  const outOfRange =
+    known?.expected_range !== undefined &&
+    (value < known.expected_range[0] || value > known.expected_range[1]);
+
+  const extraMeta: Record<string, unknown> = {};
+  if (autoAttached) {
+    extraMeta["auto_attached_item_code1"] = effectiveItemCode1;
+    extraMeta["auto_attached_reason"] =
+      "다항목 통계 — KNOWN_INDICATORS default_item_code1 자동 부착";
+  }
+  if (outOfRange && known?.expected_range) {
+    extraMeta["healthcheck_warning"] =
+      `값 ${value} ${known.unit}은(는) ${known.name} 예상범위 ` +
+      `${known.expected_range[0]}~${known.expected_range[1]} 밖입니다. ` +
+      `다항목 통계 + item_code1 또는 단위 확인 필요.`;
+  }
+
   return buildResponse<EcosIndicatorPoint>({
     source: "한국은행 ECOS API",
     source_url: "https://ecos.bok.or.kr/api/",
@@ -117,6 +148,7 @@ export async function executeGetIndicator(
     meta: {
       total_rows_in_window: raw.StatisticSearch?.list_total_count ?? rows.length,
       query_window: { startDate, endDate },
+      ...extraMeta,
     },
   });
 }

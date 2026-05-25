@@ -91,19 +91,47 @@ export interface IndicatorSearchResult {
  * @public 도구 영역 데이터 공유. lib/* 무수정 룰 우회 (도구 → 도구 import).
  *   v0.3에서 `src/data/known-indicators.ts` 분리 검토.
  */
-export const KNOWN_INDICATORS: ReadonlyArray<{
+/**
+ * WO-070 (2026-05-25): 다항목 통계 메타 확장.
+ *
+ * 통념파괴: "ECOS 코드 1개 = 단일 지표"라는 통념이 깨졌다.
+ *   722Y001은 *48개 sub-item*을 가진 다항목 통계 (기준금리 + 콜금리 + 여수신금리 ...).
+ *   item_code1을 안 주면 ECOS가 임의 첫 행 반환 → 사용자/LLM이 잘못된 값 받음.
+ *
+ * → 다항목 통계는 **default_item_code1을 사전에 명시**하고,
+ *   응답값이 **expected_range** 밖이면 *경고와 함께 거부*한다 (환각 차단 서버 측 강화).
+ *
+ * @see wiki/korea-finance-mcp/work-orders.md WO-070
+ */
+export interface KnownIndicatorMeta {
   code: string;
   name: string;
   cycle: "D" | "M" | "Q" | "S" | "Y";
   unit: string;
   keywords: ReadonlyArray<string>;
-}> = [
+  /** 다항목 통계 여부. true면 default_item_code1 필수. */
+  multi_item?: boolean;
+  /** 다항목 통계일 때 자동 부착할 ITEM_CODE (ECOS StatisticItemList API로 역검증 완료한 것만). */
+  default_item_code1?: string;
+  /** 응답값 현실 범위 [min, max]. 밖이면 경고. 미지정이면 검증 생략. */
+  expected_range?: readonly [number, number];
+}
+
+export const KNOWN_INDICATORS: ReadonlyArray<KnownIndicatorMeta> = [
   {
     code: "722Y001",
     name: "한국은행 기준금리",
-    cycle: "D",
-    unit: "%",
+    cycle: "M", // WO-070: D → M (월별이 일반 사용 빈도 높음, 일별 데이터는 동일 값 반복)
+    unit: "연%",
     keywords: ["기준금리", "정책금리", "BOK 금리", "한은 금리"],
+    // WO-070 (2026-05-25): 다항목 통계 (48 sub-items). ECOS StatisticItemList 역검증 결과:
+    //   ITEM_CODE 0101000: 1999~현재, DATA_CNT M=324 (가장 활발) → 한국은행 기준금리 가설.
+    //   ITEM_CODE 0102000: 1994~현재, DATA_CNT M=388 → 콜금리 가설.
+    //   ITEM_CODE 0109000: 1994~2013 (폐지)
+    // ⚠️ default_item_code1은 주인님 ECOS 실 호출 검증 후 확정 (WO-070-A 결과 대기).
+    multi_item: true,
+    default_item_code1: "0101000", // 가설: 한국은행 기준금리. WO-070-A 검증 후 확정/수정.
+    expected_range: [0.25, 8.0], // 한국 기준금리 역사적 범위 (IMF 직후 ~10% 제외하고 일반 0.5~5%)
   },
   {
     code: "731Y001",
@@ -111,6 +139,7 @@ export const KNOWN_INDICATORS: ReadonlyArray<{
     cycle: "D",
     unit: "원",
     keywords: ["환율", "원달러", "원/달러", "달러", "USD", "USD/KRW"],
+    expected_range: [800, 2000], // 한국 원달러 역사적 범위
   },
   // WO-021 (2026-05-25): ECOS StatisticTableList API 역검증 통과 2건 활성.
   // STAT_NAME은 API 응답 그대로 (환각 방지 양보 불가).
@@ -120,6 +149,8 @@ export const KNOWN_INDICATORS: ReadonlyArray<{
     cycle: "M",
     unit: "지수",
     keywords: ["CPI", "소비자물가", "물가", "물가지수", "인플레이션"],
+    // CPI는 100 기준 (2020=100 또는 2015=100). 일반적으로 80~150 범위.
+    expected_range: [70, 200],
   },
   {
     code: "101Y004",
@@ -127,6 +158,9 @@ export const KNOWN_INDICATORS: ReadonlyArray<{
     cycle: "M",
     unit: "조원",
     keywords: ["M2", "통화량", "광의통화", "통화공급", "유동성"],
+    // M2는 다항목일 가능성 매우 높음 (WO-070-A 추가 검증 필요).
+    // 현재값(2026년경) 약 4000~5000조원 범위.
+    expected_range: [2000, 10000],
   },
   // WO-018/021 비활성 (검증 실패 — ECOS StatisticTableList ❌):
   //   200Y001 GDP / 901Y012 실업률 / 098Y001 KOSPI
