@@ -45,12 +45,17 @@ export type SearchIndicatorInput = z.infer<typeof SearchIndicatorInputSchema>;
 // ============================================================
 export const searchIndicatorTool = {
   name: "search_indicator",
+  title: "Search Korea ECOS Indicator Codes",
   description:
     "한국은행 ECOS의 통계 코드를 한글 키워드로 검색한다. " +
     "결과를 받은 다음 `get_indicator(indicator_code=...)`로 실제 값을 조회한다. " +
     "v0.1은 정적 사전 기반 (CONTRIBUTING §2의 lib/* 보호 정책 준수). " +
     "사전에 없는 키워드는 ECOS 공식 검색 사이트로 안내한다.",
   inputSchema: SearchIndicatorInputSchema,
+  annotations: {
+    readOnlyHint: true,
+    openWorldHint: false,
+  },
 } as const;
 
 // ============================================================

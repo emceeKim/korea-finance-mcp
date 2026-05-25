@@ -39,12 +39,17 @@ export type GetDashboardInput = z.infer<typeof GetDashboardInputSchema>;
 // ============================================================
 export const getDashboardTool = {
   name: "get_dashboard",
+  title: "Korea Economic Dashboard (KNOWN_INDICATORS Snapshot)",
   description:
     "검증된 핵심 지표(KNOWN_INDICATORS, 정적 사전)의 최신값을 일괄 스냅샷. " +
     "직렬 호출 + rate-limit 보호. 빈 값 지표는 skip + warnings. " +
     "전부 빈 값이면 No Data. 1개라도 ECOS 에러면 전체 실패 (환각 방지). " +
     "v0.x는 인자 없음, v0.4에서 categories 필터 추가 예정.",
   inputSchema: GetDashboardInputSchema,
+  annotations: {
+    readOnlyHint: true,
+    openWorldHint: false,
+  },
 } as const;
 
 // ============================================================

@@ -1,12 +1,21 @@
 {
   "name": "korea-finance-mcp",
-  "version": "0.1.0",
-  "description": "Korea Finance MCP — ECOS · Real Estate · DART · KRX (Model Context Protocol server)",
+  "version": "0.3.0",
+  "description": "Korea Finance MCP — ECOS · Real Estate · DART · KRX. Korea's first legally-safe (Capital Markets Act compliant) MCP server with 15 tools + 2 synergy tools (Korea-unique).",
   "type": "module",
   "main": "dist/index.js",
   "bin": {
     "korea-finance-mcp": "dist/index.js"
   },
+  "files": [
+    "dist/",
+    "README.md",
+    "LICENSE",
+    "PRIVACY.md",
+    "SECURITY.md",
+    "CHANGELOG.md",
+    "CODE_OF_CONDUCT.md"
+  ],
   "scripts": {
     "build": "tsc",
     "dev": "tsx watch src/index.ts",
@@ -18,7 +27,7 @@
     "test:regression": "vitest run tests/regression",
     "test:e2e": "vitest run tests/e2e",
     "typecheck": "tsc --noEmit",
-    "prepublishOnly": "npm run build"
+    "prepublishOnly": "npm run build && npm run typecheck && npm run test:regression"
   },
   "keywords": [
     "mcp",
@@ -27,16 +36,27 @@
     "finance",
     "ecos",
     "bok",
+    "bank-of-korea",
     "dart",
     "krx",
     "real-estate",
-    "anthropic"
+    "rtms",
+    "r-one",
+    "anthropic",
+    "claude",
+    "cowork",
+    "claude-desktop"
   ],
   "author": "MC AI Labs <mckim890@gmail.com>",
   "license": "MIT",
+  "homepage": "https://github.com/emceeKim/korea-finance-mcp#readme",
   "repository": {
     "type": "git",
     "url": "https://github.com/emceeKim/korea-finance-mcp.git"
+  },
+  "bugs": {
+    "url": "https://github.com/emceeKim/korea-finance-mcp/issues",
+    "email": "mckim890@gmail.com"
   },
   "engines": {
     "node": ">=20.0.0"
@@ -45,7 +65,8 @@
     "@modelcontextprotocol/sdk": "^1.0.0",
     "zod": "^3.23.0",
     "dotenv": "^16.4.5",
-    "express": "^4.21.0"
+    "express": "^4.21.0",
+    "express-rate-limit": "^7.4.0"
   },
   "devDependencies": {
     "@types/node": "^20.14.0",

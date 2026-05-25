@@ -65,6 +65,37 @@ import {
   executeCorrelateMacroRealestate,
   CorrelateMacroRealestateInputSchema,
 } from "./tools/correlate_macro_realestate.js";
+// WO-090~093: v3.0 주식 6 도구
+import {
+  getDisclosureTool,
+  executeGetDisclosure,
+  GetDisclosureInputSchema,
+} from "./tools/get_disclosure.js";
+import {
+  getFinancialsTool,
+  executeGetFinancials,
+  GetFinancialsInputSchema,
+} from "./tools/get_financials.js";
+import {
+  getStockPriceTool,
+  executeGetStockPrice,
+  GetStockPriceInputSchema,
+} from "./tools/get_stock_price.js";
+import {
+  getMarketIndexTool,
+  executeGetMarketIndex,
+  GetMarketIndexInputSchema,
+} from "./tools/get_market_index.js";
+import {
+  correlateMacroStockTool,
+  executeCorrelateMacroStock,
+  CorrelateMacroStockInputSchema,
+} from "./tools/correlate_macro_stock.js";
+import {
+  correlateStockRealestateTool,
+  executeCorrelateStockRealestate,
+  CorrelateStockRealestateInputSchema,
+} from "./tools/correlate_stock_realestate.js";
 
 // ============================================================
 // 환경변수 로드 (.env)
@@ -76,78 +107,157 @@ config();
 // ============================================================
 interface ToolDefinition {
   name: string;
+  title?: string; // WO-085: Anthropic Directory 필수
   description: string;
   inputSchema: z.ZodTypeAny;
   execute: (input: unknown) => Promise<unknown>;
+  annotations?: {
+    readOnlyHint?: boolean;
+    destructiveHint?: boolean;
+    openWorldHint?: boolean;
+    idempotentHint?: boolean;
+  };
 }
 
 const TOOLS: ToolDefinition[] = [
   {
     name: getIndicatorTool.name,
+    title: getIndicatorTool.title,
     description: getIndicatorTool.description,
     inputSchema: getIndicatorTool.inputSchema,
+    annotations: getIndicatorTool.annotations,
     execute: async (input) =>
       executeGetIndicator(GetIndicatorInputSchema.parse(input)),
   },
   {
     name: searchIndicatorTool.name,
+    title: searchIndicatorTool.title,
     description: searchIndicatorTool.description,
     inputSchema: searchIndicatorTool.inputSchema,
+    annotations: searchIndicatorTool.annotations,
     execute: async (input) =>
       executeSearchIndicator(SearchIndicatorInputSchema.parse(input)),
   },
   {
     name: getTimeseriesTool.name,
+    title: getTimeseriesTool.title,
     description: getTimeseriesTool.description,
     inputSchema: getTimeseriesTool.inputSchema,
+    annotations: getTimeseriesTool.annotations,
     execute: async (input) =>
       executeGetTimeseries(GetTimeseriesInputSchema.parse(input)),
   },
   {
     name: compareIndicatorsTool.name,
+    title: compareIndicatorsTool.title,
     description: compareIndicatorsTool.description,
     inputSchema: compareIndicatorsTool.inputSchema,
+    annotations: compareIndicatorsTool.annotations,
     execute: async (input) =>
       executeCompareIndicators(CompareIndicatorsInputSchema.parse(input)),
   },
   {
     name: getDashboardTool.name,
+    title: getDashboardTool.title,
     description: getDashboardTool.description,
     inputSchema: getDashboardTool.inputSchema,
+    annotations: getDashboardTool.annotations,
     execute: async (input) =>
       executeGetDashboard(GetDashboardInputSchema.parse(input)),
   },
   {
     name: getRealEstatePriceTool.name,
+    title: getRealEstatePriceTool.title,
     description: getRealEstatePriceTool.description,
     inputSchema: getRealEstatePriceTool.inputSchema,
+    annotations: getRealEstatePriceTool.annotations,
     execute: async (input) =>
       executeGetRealEstatePrice(GetRealEstatePriceInputSchema.parse(input)),
   },
   {
     name: getHousingIndexTool.name,
+    title: getHousingIndexTool.title,
     description: getHousingIndexTool.description,
     inputSchema: getHousingIndexTool.inputSchema,
+    annotations: getHousingIndexTool.annotations,
     execute: async (input) =>
       executeGetHousingIndex(GetHousingIndexInputSchema.parse(input)),
   },
   {
     name: getJeonseRatioTool.name,
+    title: getJeonseRatioTool.title,
     description: getJeonseRatioTool.description,
     inputSchema: getJeonseRatioTool.inputSchema,
+    annotations: getJeonseRatioTool.annotations,
     execute: async (input) =>
       executeGetJeonseRatio(GetJeonseRatioInputSchema.parse(input)),
   },
   {
     name: correlateMacroRealestateTool.name,
+    title: correlateMacroRealestateTool.title,
     description: correlateMacroRealestateTool.description,
     inputSchema: correlateMacroRealestateTool.inputSchema,
+    annotations: correlateMacroRealestateTool.annotations,
     execute: async (input) =>
       executeCorrelateMacroRealestate(CorrelateMacroRealestateInputSchema.parse(input)),
   },
-  // 👇 새 도구는 이 아래에 추가
-  // 🏆 v1.0 거시 5/5 + 🏘️ v2.0 부동산 4/4 완성 (2026-05-25). 도구 9/15.
-  // 다음: v3.0 주식 6 도구 (9~12주차).
+  // WO-090~093: v3.0 주식 6 도구 (15/15 완성)
+  {
+    name: getDisclosureTool.name,
+    title: getDisclosureTool.title,
+    description: getDisclosureTool.description,
+    inputSchema: getDisclosureTool.inputSchema,
+    annotations: getDisclosureTool.annotations,
+    execute: async (input) =>
+      executeGetDisclosure(GetDisclosureInputSchema.parse(input)),
+  },
+  {
+    name: getFinancialsTool.name,
+    title: getFinancialsTool.title,
+    description: getFinancialsTool.description,
+    inputSchema: getFinancialsTool.inputSchema,
+    annotations: getFinancialsTool.annotations,
+    execute: async (input) =>
+      executeGetFinancials(GetFinancialsInputSchema.parse(input)),
+  },
+  {
+    name: getStockPriceTool.name,
+    title: getStockPriceTool.title,
+    description: getStockPriceTool.description,
+    inputSchema: getStockPriceTool.inputSchema,
+    annotations: getStockPriceTool.annotations,
+    execute: async (input) =>
+      executeGetStockPrice(GetStockPriceInputSchema.parse(input)),
+  },
+  {
+    name: getMarketIndexTool.name,
+    title: getMarketIndexTool.title,
+    description: getMarketIndexTool.description,
+    inputSchema: getMarketIndexTool.inputSchema,
+    annotations: getMarketIndexTool.annotations,
+    execute: async (input) =>
+      executeGetMarketIndex(GetMarketIndexInputSchema.parse(input)),
+  },
+  {
+    name: correlateMacroStockTool.name,
+    title: correlateMacroStockTool.title,
+    description: correlateMacroStockTool.description,
+    inputSchema: correlateMacroStockTool.inputSchema,
+    annotations: correlateMacroStockTool.annotations,
+    execute: async (input) =>
+      executeCorrelateMacroStock(CorrelateMacroStockInputSchema.parse(input)),
+  },
+  {
+    name: correlateStockRealestateTool.name,
+    title: correlateStockRealestateTool.title,
+    description: correlateStockRealestateTool.description,
+    inputSchema: correlateStockRealestateTool.inputSchema,
+    annotations: correlateStockRealestateTool.annotations,
+    execute: async (input) =>
+      executeCorrelateStockRealestate(CorrelateStockRealestateInputSchema.parse(input)),
+  },
+  // 🎉 v3.0 주식 6/6 완성 (2026-05-25). **15/15 도구 완성**.
+  // 시너지 2종 (correlate_macro_stock + correlate_stock_realestate ⭐⭐ 한국 유일) 포함.
 ];
 
 // ============================================================
@@ -156,7 +266,7 @@ const TOOLS: ToolDefinition[] = [
 const server = new Server(
   {
     name: "korea-finance-mcp",
-    version: "0.1.0",
+    version: "0.2.0", // WO-087: package.json과 동기화 (v2.0 release)
   },
   {
     capabilities: {
@@ -169,8 +279,10 @@ const server = new Server(
 server.setRequestHandler(ListToolsRequestSchema, async () => ({
   tools: TOOLS.map((t) => ({
     name: t.name,
+    ...(t.title && { title: t.title }), // WO-085 Anthropic Directory 필수
     description: t.description,
     inputSchema: zodToJsonSchema(t.inputSchema),
+    ...(t.annotations && { annotations: t.annotations }), // WO-085
   })),
 }));
 

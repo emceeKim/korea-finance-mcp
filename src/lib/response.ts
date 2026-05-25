@@ -81,14 +81,22 @@ export function buildNoData(input: {
   source: string;
   source_url: string;
   last_updated_at: string;
+  /**
+   * WO-097 (2026-05-25): 도구별 상황 안내 (선택). 기본 메시지 *앞*에 추가됨.
+   * 예: get_disclosure가 KNOWN_COMPANIES 미매핑 시 "..."  메시지 전달.
+   * 이전엔 무시되던 암묵적 버그 — 회귀 st-02b/st-02c/st-04c 발견.
+   */
+  warnings?: string[];
 }): NoDataResponse {
+  const baseWarning = "데이터 없음 — 추측하지 않음. 공식 사이트에서 직접 확인 권장.";
+  const extra = input.warnings && input.warnings.length > 0 ? input.warnings : [];
   return {
-    ...input,
+    source: input.source,
+    source_url: input.source_url,
+    last_updated_at: input.last_updated_at,
     data: null,
     disclaimer: STANDARD_DISCLAIMER,
-    warnings: [
-      "데이터 없음 — 추측하지 않음. 공식 사이트에서 직접 확인 권장.",
-    ],
+    warnings: [...extra, baseWarning],
   };
 }
 

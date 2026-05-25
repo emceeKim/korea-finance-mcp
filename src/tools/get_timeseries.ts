@@ -57,11 +57,16 @@ export type GetTimeseriesInput = z.infer<typeof GetTimeseriesInputSchema>;
 // ============================================================
 export const getTimeseriesTool = {
   name: "get_timeseries",
+  title: "Korea ECOS Indicator Time Series",
   description:
     "ECOS 통계의 시계열 조회 — 지정 기간의 전체 시점 데이터. " +
     "단일 시점은 get_indicator, 코드 검색은 search_indicator 사용. " +
     "최대 1000행 (v0.x). 빈 값은 skip (보간·추측 금지, meta.skipped_null_values 표기).",
   inputSchema: GetTimeseriesInputSchema,
+  annotations: {
+    readOnlyHint: true,
+    openWorldHint: false,
+  },
 } as const;
 
 // ============================================================

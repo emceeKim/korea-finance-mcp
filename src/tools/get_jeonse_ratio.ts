@@ -30,6 +30,7 @@ export type GetJeonseRatioInput = z.infer<typeof GetJeonseRatioInputSchema>;
 
 export const getJeonseRatioTool = {
   name: "get_jeonse_ratio",
+  title: "Korea Jeonse-to-Sale Ratio (R-ONE, Korea-specific)",
   description: [
     "한국 전세가율 (매매가격 대비 전세가격 비율, 월별, 한국부동산원 R-ONE).",
     "입력: region (national/seoul/gangnam/seocho/songpa/incheon/busan/daegu/sejong)",
@@ -38,6 +39,10 @@ export const getJeonseRatioTool = {
     "한국 특화 지표 — 외국 MCP 진입 어려움 (방벽 2)",
   ].join("\n"),
   inputSchema: GetJeonseRatioInputSchema,
+  annotations: {
+    readOnlyHint: true,
+    openWorldHint: false,
+  },
 } as const;
 
 interface JeonseMeta {

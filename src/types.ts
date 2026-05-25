@@ -52,7 +52,11 @@ export interface ToolResponse<T = unknown> {
  */
 export interface NoDataResponse extends ToolResponse<null> {
   data: null;
-  warnings: ["데이터 없음 — 추측하지 않음. 공식 사이트에서 직접 확인 권장."];
+  /**
+   * WO-097/098: 도구별 상황 안내 (예: KNOWN_COMPANIES 미매핑) 앞에 + 기본 메시지 뒤에.
+   * 양보 불가: *마지막 원소*는 반드시 "데이터 없음 — 추측하지 않음. 공식 사이트에서 직접 확인 권장.".
+   */
+  warnings: string[];
 }
 
 /**

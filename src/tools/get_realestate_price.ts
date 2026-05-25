@@ -31,6 +31,7 @@ export type GetRealEstatePriceInput = z.infer<typeof GetRealEstatePriceInputSche
 
 export const getRealEstatePriceTool = {
   name: "get_realestate_price",
+  title: "Korea Real Estate Transaction Price (RTMS)",
   description: [
     "한국 부동산 실거래가 조회 (국토부 RTMS).",
     "입력: region_code (5자리 법정동, KNOWN_REGIONS 사전 매핑 필수)",
@@ -40,6 +41,10 @@ export const getRealEstatePriceTool = {
     "데이터 출처: data.go.kr (공공 무료, 영업일 +30~60일 신고 의무)",
   ].join("\n"),
   inputSchema: GetRealEstatePriceInputSchema,
+  annotations: {
+    readOnlyHint: true,
+    openWorldHint: false,
+  },
 } as const;
 
 interface RealEstateMeta {

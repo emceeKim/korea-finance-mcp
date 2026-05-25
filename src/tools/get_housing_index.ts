@@ -30,6 +30,7 @@ export type GetHousingIndexInput = z.infer<typeof GetHousingIndexInputSchema>;
 
 export const getHousingIndexTool = {
   name: "get_housing_index",
+  title: "Korea Housing Price Index (R-ONE Monthly)",
   description: [
     "한국 주택가격지수 (월간, 한국부동산원 R-ONE).",
     "입력: region (national/seoul/gangnam/seocho/songpa/incheon/busan/daegu/sejong)",
@@ -38,6 +39,10 @@ export const getHousingIndexTool = {
     "데이터 출처: reb.or.kr (공공 무료, 월말 +15일 발표)",
   ].join("\n"),
   inputSchema: GetHousingIndexInputSchema,
+  annotations: {
+    readOnlyHint: true,
+    openWorldHint: false,
+  },
 } as const;
 
 interface HousingIndexMeta {

@@ -44,11 +44,17 @@ export type GetIndicatorInput = z.infer<typeof GetIndicatorInputSchema>;
 // ============================================================
 export const getIndicatorTool = {
   name: "get_indicator",
+  title: "Korea ECOS Indicator (Current Value)",
   description:
     "한국은행 ECOS의 단일 통계 지표 현재값을 조회한다. " +
     "기준금리·환율·CPI·M2·GDP 등 6만+ 시계열 접근 가능. " +
     "코드를 모를 때는 'search_indicator' 도구를 먼저 사용할 것.",
   inputSchema: GetIndicatorInputSchema,
+  annotations: {
+    // WO-085 (2026-05-25): Anthropic Directory 필수. 자본시장법 영구 미등록 → destructive 0.
+    readOnlyHint: true,
+    openWorldHint: false, // 공공 API만 호출, 외부 web 일반 X
+  },
 } as const;
 
 // ============================================================

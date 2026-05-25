@@ -67,11 +67,16 @@ export type CompareIndicatorsInput = z.infer<
 // ============================================================
 export const compareIndicatorsTool = {
   name: "compare_indicators",
+  title: "Compare Multiple Korea Indicators (2-5)",
   description:
     "ECOS 다지표(2~5개) 시계열 비교. 공통 기간으로 정렬, 누락 시점은 null 유지(보간 금지). " +
     "직렬 호출 + rate-limit 보호. 1개라도 ECOS 에러면 전체 실패. " +
     "단일 지표는 get_timeseries 사용. 6개 이상은 progressive disclosure(v0.3) 후 확장 예정.",
   inputSchema: CompareIndicatorsInputSchema,
+  annotations: {
+    readOnlyHint: true,
+    openWorldHint: false,
+  },
 } as const;
 
 // ============================================================

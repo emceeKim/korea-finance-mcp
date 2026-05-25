@@ -24,6 +24,7 @@ import {
 } from "@modelcontextprotocol/sdk/types.js";
 import { z } from "zod";
 import { config } from "dotenv";
+import rateLimit from "express-rate-limit"; // WO-086 Phase 2: DoS 방어
 
 import { serializeForMcp } from "./lib/response.js";
 import {
@@ -71,6 +72,37 @@ import {
   executeCorrelateMacroRealestate,
   CorrelateMacroRealestateInputSchema,
 } from "./tools/correlate_macro_realestate.js";
+// WO-090~093: v3.0 주식 6 도구
+import {
+  getDisclosureTool,
+  executeGetDisclosure,
+  GetDisclosureInputSchema,
+} from "./tools/get_disclosure.js";
+import {
+  getFinancialsTool,
+  executeGetFinancials,
+  GetFinancialsInputSchema,
+} from "./tools/get_financials.js";
+import {
+  getStockPriceTool,
+  executeGetStockPrice,
+  GetStockPriceInputSchema,
+} from "./tools/get_stock_price.js";
+import {
+  getMarketIndexTool,
+  executeGetMarketIndex,
+  GetMarketIndexInputSchema,
+} from "./tools/get_market_index.js";
+import {
+  correlateMacroStockTool,
+  executeCorrelateMacroStock,
+  CorrelateMacroStockInputSchema,
+} from "./tools/correlate_macro_stock.js";
+import {
+  correlateStockRealestateTool,
+  executeCorrelateStockRealestate,
+  CorrelateStockRealestateInputSchema,
+} from "./tools/correlate_stock_realestate.js";
 
 // ============================================================
 // 환경변수 로드
@@ -82,74 +114,154 @@ config();
 // ============================================================
 interface ToolDefinition {
   name: string;
+  title?: string;
   description: string;
   inputSchema: z.ZodTypeAny;
   execute: (input: unknown) => Promise<unknown>;
+  annotations?: {
+    readOnlyHint?: boolean;
+    destructiveHint?: boolean;
+    openWorldHint?: boolean;
+    idempotentHint?: boolean;
+  };
 }
 
 const TOOLS: ToolDefinition[] = [
   {
     name: getIndicatorTool.name,
+    title: getIndicatorTool.title,
     description: getIndicatorTool.description,
     inputSchema: getIndicatorTool.inputSchema,
+    annotations: getIndicatorTool.annotations,
     execute: async (input) =>
       executeGetIndicator(GetIndicatorInputSchema.parse(input)),
   },
   {
     name: searchIndicatorTool.name,
+    title: searchIndicatorTool.title,
     description: searchIndicatorTool.description,
     inputSchema: searchIndicatorTool.inputSchema,
+    annotations: searchIndicatorTool.annotations,
     execute: async (input) =>
       executeSearchIndicator(SearchIndicatorInputSchema.parse(input)),
   },
   {
     name: getTimeseriesTool.name,
+    title: getTimeseriesTool.title,
     description: getTimeseriesTool.description,
     inputSchema: getTimeseriesTool.inputSchema,
+    annotations: getTimeseriesTool.annotations,
     execute: async (input) =>
       executeGetTimeseries(GetTimeseriesInputSchema.parse(input)),
   },
   {
     name: compareIndicatorsTool.name,
+    title: compareIndicatorsTool.title,
     description: compareIndicatorsTool.description,
     inputSchema: compareIndicatorsTool.inputSchema,
+    annotations: compareIndicatorsTool.annotations,
     execute: async (input) =>
       executeCompareIndicators(CompareIndicatorsInputSchema.parse(input)),
   },
   {
     name: getDashboardTool.name,
+    title: getDashboardTool.title,
     description: getDashboardTool.description,
     inputSchema: getDashboardTool.inputSchema,
+    annotations: getDashboardTool.annotations,
     execute: async (input) =>
       executeGetDashboard(GetDashboardInputSchema.parse(input)),
   },
   {
     name: getRealEstatePriceTool.name,
+    title: getRealEstatePriceTool.title,
     description: getRealEstatePriceTool.description,
     inputSchema: getRealEstatePriceTool.inputSchema,
+    annotations: getRealEstatePriceTool.annotations,
     execute: async (input) =>
       executeGetRealEstatePrice(GetRealEstatePriceInputSchema.parse(input)),
   },
   {
     name: getHousingIndexTool.name,
+    title: getHousingIndexTool.title,
     description: getHousingIndexTool.description,
     inputSchema: getHousingIndexTool.inputSchema,
+    annotations: getHousingIndexTool.annotations,
     execute: async (input) =>
       executeGetHousingIndex(GetHousingIndexInputSchema.parse(input)),
   },
   {
     name: getJeonseRatioTool.name,
+    title: getJeonseRatioTool.title,
     description: getJeonseRatioTool.description,
     inputSchema: getJeonseRatioTool.inputSchema,
+    annotations: getJeonseRatioTool.annotations,
     execute: async (input) =>
       executeGetJeonseRatio(GetJeonseRatioInputSchema.parse(input)),
   },
   {
     name: correlateMacroRealestateTool.name,
+    title: correlateMacroRealestateTool.title,
     description: correlateMacroRealestateTool.description,
     inputSchema: correlateMacroRealestateTool.inputSchema,
+    annotations: correlateMacroRealestateTool.annotations,
     execute: async (input) =>
       executeCorrelateMacroRealestate(CorrelateMacroRealestateInputSchema.parse(input)),
+  },
+  // WO-090~093: v3.0 주식 6 도구 (15/15 완성)
+  {
+    name: getDisclosureTool.name,
+    title: getDisclosureTool.title,
+    description: getDisclosureTool.description,
+    inputSchema: getDisclosureTool.inputSchema,
+    annotations: getDisclosureTool.annotations,
+    execute: async (input) =>
+      executeGetDisclosure(GetDisclosureInputSchema.parse(input)),
+  },
+  {
+    name: getFinancialsTool.name,
+    title: getFinancialsTool.title,
+    description: getFinancialsTool.description,
+    inputSchema: getFinancialsTool.inputSchema,
+    annotations: getFinancialsTool.annotations,
+    execute: async (input) =>
+      executeGetFinancials(GetFinancialsInputSchema.parse(input)),
+  },
+  {
+    name: getStockPriceTool.name,
+    title: getStockPriceTool.title,
+    description: getStockPriceTool.description,
+    inputSchema: getStockPriceTool.inputSchema,
+    annotations: getStockPriceTool.annotations,
+    execute: async (input) =>
+      executeGetStockPrice(GetStockPriceInputSchema.parse(input)),
+  },
+  {
+    name: getMarketIndexTool.name,
+    title: getMarketIndexTool.title,
+    description: getMarketIndexTool.description,
+    inputSchema: getMarketIndexTool.inputSchema,
+    annotations: getMarketIndexTool.annotations,
+    execute: async (input) =>
+      executeGetMarketIndex(GetMarketIndexInputSchema.parse(input)),
+  },
+  {
+    name: correlateMacroStockTool.name,
+    title: correlateMacroStockTool.title,
+    description: correlateMacroStockTool.description,
+    inputSchema: correlateMacroStockTool.inputSchema,
+    annotations: correlateMacroStockTool.annotations,
+    execute: async (input) =>
+      executeCorrelateMacroStock(CorrelateMacroStockInputSchema.parse(input)),
+  },
+  {
+    name: correlateStockRealestateTool.name,
+    title: correlateStockRealestateTool.title,
+    description: correlateStockRealestateTool.description,
+    inputSchema: correlateStockRealestateTool.inputSchema,
+    annotations: correlateStockRealestateTool.annotations,
+    execute: async (input) =>
+      executeCorrelateStockRealestate(CorrelateStockRealestateInputSchema.parse(input)),
   },
 ];
 
@@ -158,15 +270,17 @@ const TOOLS: ToolDefinition[] = [
 // ============================================================
 function buildServer(): Server {
   const server = new Server(
-    { name: "korea-finance-mcp", version: "0.1.0" },
+    { name: "korea-finance-mcp", version: "0.2.0" }, // WO-087: v2.0 동기화
     { capabilities: { tools: {} } },
   );
 
   server.setRequestHandler(ListToolsRequestSchema, async () => ({
     tools: TOOLS.map((t) => ({
       name: t.name,
+      ...(t.title && { title: t.title }),
       description: t.description,
       inputSchema: zodToJsonSchema(t.inputSchema),
+      ...(t.annotations && { annotations: t.annotations }),
     })),
   }));
 
@@ -256,7 +370,7 @@ async function main(): Promise<void> {
     res.status(200).json({
       status: "ok",
       service: "korea-finance-mcp",
-      version: "0.1.0",
+      version: "0.2.0", // WO-087: /healthz 응답 동기화
       tools: TOOLS.length,
       timestamp: new Date().toISOString(),
     });
@@ -276,12 +390,47 @@ async function main(): Promise<void> {
   //   4) DELETE /mcp + Mcp-Session-Id → 세션 종료
   //
   // @see node_modules/@modelcontextprotocol/sdk/dist/esm/examples/server/simpleStreamableHttp.js
-  // @see wiki/korea-finance-mcp/work-orders.md WO-069
+  // @see wiki/korea-finance-mcp/work-orders.md WO-069 (stateful) + WO-086 (security)
   // ============================================================
   const transports: Record<string, StreamableHTTPServerTransport> = {};
+  const sessionTimers = new Map<string, NodeJS.Timeout>(); // WO-086: 세션 max age timer
+
+  // WO-086 Phase 2: 세션 max age — 30분 미사용 시 자동 정리 (메모리 누수 방지)
+  const SESSION_MAX_AGE_MS = 30 * 60 * 1000;
+  const scheduleSessionTimeout = (sid: string): void => {
+    // 기존 timer 정리 (재호출 시 갱신)
+    const old = sessionTimers.get(sid);
+    if (old) clearTimeout(old);
+    const timer = setTimeout(() => {
+      const t = transports[sid];
+      if (t) {
+        process.stderr.write(`[http] session ${sid} timeout (30 min) — auto-cleanup\n`);
+        t.close().catch(() => {});
+        delete transports[sid];
+        sessionTimers.delete(sid);
+      }
+    }, SESSION_MAX_AGE_MS);
+    sessionTimers.set(sid, timer);
+  };
+
+  // WO-086 Phase 2: Rate limit — /mcp만 (헬스체크 제외)
+  //   기본 30 req/분/IP (정상 사용자 평균 ~5-10/분 보호 + DoS 방어)
+  //   429 응답은 JSON-RPC 표준 에러 형식 사용
+  const mcpLimiter = rateLimit({
+    windowMs: 60 * 1000,
+    max: Number(process.env.RATE_LIMIT_PER_MIN ?? 30),
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: {
+      jsonrpc: "2.0",
+      error: { code: -32029, message: "Rate limit exceeded — 30 req/min/IP. Please retry shortly." },
+      id: null,
+    },
+    // /healthz는 적용 안 됨 (별도 라우트)
+  });
 
   // POST — JSON-RPC 메시지 (initialize / tools/list / tools/call / 기타)
-  app.post("/mcp", async (req: ExpressRequest, res: ExpressResponse) => {
+  app.post("/mcp", mcpLimiter, async (req: ExpressRequest, res: ExpressResponse) => {
     const sessionId = req.headers["mcp-session-id"] as string | undefined;
     try {
       let transport: StreamableHTTPServerTransport;
@@ -295,12 +444,19 @@ async function main(): Promise<void> {
           sessionIdGenerator: () => randomUUID(),
           onsessioninitialized: (sid: string) => {
             transports[sid] = transport;
+            scheduleSessionTimeout(sid); // WO-086: 30분 max age
           },
         });
         transport.onclose = () => {
           const sid = transport.sessionId;
           if (sid && transports[sid]) {
             delete transports[sid];
+            // WO-086: timer 정리
+            const timer = sessionTimers.get(sid);
+            if (timer) {
+              clearTimeout(timer);
+              sessionTimers.delete(sid);
+            }
           }
         };
         const server = buildServer();
@@ -332,7 +488,7 @@ async function main(): Promise<void> {
   });
 
   // GET — SSE 스트림 (서버 → 클라이언트 알림 채널)
-  app.get("/mcp", async (req: ExpressRequest, res: ExpressResponse) => {
+  app.get("/mcp", mcpLimiter, async (req: ExpressRequest, res: ExpressResponse) => {
     const sessionId = req.headers["mcp-session-id"] as string | undefined;
     if (!sessionId || !transports[sessionId]) {
       res.status(400).json({
@@ -358,7 +514,7 @@ async function main(): Promise<void> {
   });
 
   // DELETE — 세션 종료
-  app.delete("/mcp", async (req: ExpressRequest, res: ExpressResponse) => {
+  app.delete("/mcp", mcpLimiter, async (req: ExpressRequest, res: ExpressResponse) => {
     const sessionId = req.headers["mcp-session-id"] as string | undefined;
     if (!sessionId || !transports[sessionId]) {
       res.status(400).json({
@@ -385,7 +541,7 @@ async function main(): Promise<void> {
 
   app.listen(PORT, HOST, () => {
     process.stderr.write(
-      `[korea-finance-mcp:http] v0.1.0 listening on http://${HOST}:${PORT} — ${TOOLS.length} tool(s)\n`,
+      `[korea-finance-mcp:http] v0.2.0 listening on http://${HOST}:${PORT} — ${TOOLS.length} tool(s)\n`,
     );
   });
 }

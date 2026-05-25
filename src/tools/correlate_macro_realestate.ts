@@ -38,6 +38,7 @@ export type CorrelateMacroRealestateInput = z.infer<
 
 export const correlateMacroRealestateTool = {
   name: "correlate_macro_realestate",
+  title: "⭐ Macro ↔ Realestate Correlation (Korea Synergy)",
   description: [
     "⭐ 거시경제 지표(ECOS) ↔ 부동산(R-ONE) 단순 상관계수 + 시차.",
     "입력: macro_code (KNOWN_INDICATORS 사전), region (KNOWN_REGIONS_RONE)",
@@ -46,6 +47,10 @@ export const correlateMacroRealestateTool = {
     "⚠️ *단순 상관*만. 인과/예측/추천은 응답에 *0건* 강제.",
   ].join("\n"),
   inputSchema: CorrelateMacroRealestateInputSchema,
+  annotations: {
+    readOnlyHint: true,
+    openWorldHint: false,
+  },
 } as const;
 
 // MANDATORY_NOTES — 응답에 *반드시* 모두 포함 (회귀 re-18a 검증)

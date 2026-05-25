@@ -1,31 +1,110 @@
 # korea-finance-mcp
 
-**한국 금융 MCP (Model Context Protocol)** — ECOS · 부동산 · DART · KRX 통합 + ⭐ **시너지 도구 2종**
+> **한국 첫 자본시장법-안전 금융 MCP. 1인 운영. 15 도구. 시너지 2종 (한국 유일).**
+> *The first Korea-finance MCP that's legally safe to deploy. 1-person operated. 15 tools. 2 Korea-unique synergy tools.*
 
-> AI 금융 분석을 위한 한국 표준 MCP 서버. *자본시장법 4종 미등록 영구 잠금* + 환각 방지 6중 안전망.
-> ✅ **현재 v0.2.0 (Private + Fly.io 운영 중)** — 9 도구 활성 (v1.0 거시 5 + v2.0 부동산 4). Cowork·Claude Desktop 호환 검증 완료 (WO-069/070).
->
-> 🚨 **외부 사용 미권장 (1인 운영 단계)**: 현재 *주인님 개인 사용 + 소규모 검증* 단계입니다. 일반 사용자 호출은 **v1.0 Public 전환 D-day (2026-06-01 잠정)** 이후 권장합니다.
-> 
-> **현재 미도입 보안 항목** (locked D-day에 4건 일괄 도입 예정):
-> - Rate limit 0 → 트래픽 폭주 시 Fly.io 머신 다운 가능
-> - DoS 무방어 → Cloudflare 프록시 미적용 (uptime 7일 후 도입)
-> - 세션 max age 0 → 메모리 누수 가능 (장기 운영 시)
-> - DNS rebinding 미방어 → `allowedHosts` 미설정
-> 
-> **현재 안전 항목** (이미 ✅):
-> - API 키 5중 방어 (.env + .gitignore + Fly.io secrets + 코드 grep 검증 + 에러 메시지 검증 모두 통과)
-> - 자본시장법 영구 금지 7건 (코드 진입 자체 차단)
-> - 부동산 dong/ho/jibun 자동 제거 (정부 정책보다 1단계 보수적)
-> - HTTPS 강제 (Fly.io 기본)
-> 
-> 자세히는 `wiki/decisions/korea-finance-mcp-security-policy-2026-W22.md` 참조.
+![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)
+![MCP](https://img.shields.io/badge/MCP-compatible-blue)
+![Tools](https://img.shields.io/badge/tools-15-brightgreen)
+![Korea Finance](https://img.shields.io/badge/data-Korea_Finance-red)
+![Status](https://img.shields.io/badge/status-Public_v1.0-blue)
+
+한국은행 ECOS · 국토부 RTMS · 한국부동산원 R-ONE · DART · KRX 통합 + ⭐⭐ **시너지 도구 2종 (외국 MCP 진입 불가)** + *자본시장법 4종 미등록 영구 잠금* + 환각 방지 6중 안전망.
+
+**🎉 v1.0 Public 릴리스** (2026-05-25). Cowork · Claude Desktop · MCP Inspector · Cursor 호환 검증 완료.
+
+---
+
+## 5분 시작 가이드
+
+### 🅰️ Cowork (Claude Desktop) — 가장 빠름
+
+1. Cowork → **Customize** → **Connectors** → `+` 클릭
+2. URL 등록:
+   ```
+   https://korea-finance-mcp-divine-hillside-8872.fly.dev/mcp
+   ```
+3. 새 채팅 → `korea-finance MCP의 get_indicator로 722Y001 (한국 기준금리) 조회`
+4. **2.5% (한국은행 기준금리)** 즉시 응답 ✅
+
+### 🅱️ Claude Code / Cursor / 기타 MCP 클라이언트
+
+`claude_desktop_config.json` 또는 동등 설정:
+```json
+{
+  "mcpServers": {
+    "korea-finance": {
+      "url": "https://korea-finance-mcp-divine-hillside-8872.fly.dev/mcp"
+    }
+  }
+}
+```
+
+### 🅲 자체 호스팅 (오픈소스 fork)
+
+```bash
+git clone https://github.com/emceeKim/korea-finance-mcp.git
+cd korea-finance-mcp
+npm install
+cp .env.example .env  # ECOS_API_KEY, DATA_GO_KR_API_KEY, DART_API_KEY 등록
+npm run build
+npm start  # 또는 npm run start:http for remote deployment
+```
+
+---
+
+## 🎯 15 도구 (한 화면 요약)
+
+| 카테고리 | 도구 | 데이터원 | 차별화 |
+|---|---|---|---|
+| **거시 (5)** | `get_indicator` / `search_indicator` / `get_timeseries` / `compare_indicators` / `get_dashboard` | 한국은행 ECOS | KNOWN_INDICATORS 정적 사전 (추측 금지) |
+| **부동산 (4)** | `get_realestate_price` / `get_housing_index` / `get_jeonse_ratio` / **`correlate_macro_realestate`** ⭐ | 국토부 RTMS + R-ONE | dong/ho/jibun 자동 제거 (정부보다 1단계 보수적) |
+| **주식 (6)** | `get_disclosure` / `get_financials` / `get_stock_price` / `get_market_index` / **`correlate_macro_stock`** ⭐ / **`correlate_stock_realestate`** ⭐⭐ | DART + KRX | **한국 유일** 시너지 (외국 MCP 진입 불가) |
+
+### ⭐⭐ 시너지 도구의 진짜 차별화
+
+`correlate_stock_realestate`는 **한국 ECOS + 부동산 + 주식 데이터를 모두 통합한 후에만** 가능합니다. 외국 MCP는 한국 데이터에 접근 못해서 **구조적으로 진입 불가**. 4중 방벽 전략의 핵심 (자본시장법 + 시너지 + 6중 안전망 + 사전 잠금).
+
+---
+
+## 🛡 자본시장법 영구 금지 7건 (우리 차별화 = 안전 보장)
+
+| 금지 도구 | 법적 근거 |
+|---|---|
+| `place_order` | 자본시장법 §11 투자중개업 미등록 |
+| `recommend_stocks` | §101 유사투자자문업 미등록 |
+| `predict_price` / `get_target_price` | §178 부정거래 회피 + 환각 |
+| `optimize_portfolio` / `manage_portfolio` | §6 투자자문업 / §18 투자일임업 미등록 |
+| `get_orderbook` (실시간 호가) | 한국거래소 라이선스 |
+
+**경쟁자가 "왜 못하지?"라 묻는다면, 우리는 "처음부터 안 하기로 했다. 그래서 안전하다"라고 답합니다.** 이게 차별화입니다.
+
+---
+
+## ✅ 운영 중 보안 (v1.0 Public 기준)
+
+- ✅ Rate limit: 30 req/분/IP (`-32029` JSON-RPC 표준 에러)
+- ✅ 세션 max age: 30분 자동 정리 (메모리 누수 방지)
+- ✅ API 키 5중 방어 (.env + .gitignore + Fly.io secrets + grep 검증 + git history clean)
+- ✅ HTTPS 강제 (Fly.io 기본)
+- ✅ Stateful 세션 UUID (cryptographically random)
+- ✅ Zod 입력 검증 (모든 도구)
+- ✅ 환각 차단 (KNOWN_INDICATORS / REGIONS / COMPANIES / TICKERS 정적 사전 + `expected_range` healthcheck)
+
+## ⏳ 백로그 (v1.1 예정)
+
+- DNS rebinding 보호 (ALLOWED_HOSTS, Fly 헬스체크 호환 검증 후)
+- Cloudflare 프록시 (uptime 7일 후)
+- KNOWN_COMPANIES / TICKERS TOP 50 데이터 채움 (DART corpCode.xml 역검증)
+- v3.1 지분공시 (DS004) + 증권신고서 (DS006)
+
+---
 
 ## 한 줄 정의
 
-ETF Insight의 "내부 두뇌"이자 한국 AI 금융 분석의 "외부 표준" — 12주 로드맵 + *자본시장법 안전망*이 진짜 차별화.
+ETF Insight의 "내부 두뇌"이자 한국 AI 금융 분석의 "외부 표준" — 12주 로드맵을 *1일 마라톤 + 9주 단축*으로 종결한 1인 기업의 첫 자본시장법-안전 금융 MCP.
 
-## 1주차 마라톤 결과 (2026-05-25)
+## 1일 마라톤 결과 (2026-05-25)
 
 | 지표 | 결과 |
 |---|---|
@@ -42,9 +121,9 @@ ETF Insight의 "내부 두뇌"이자 한국 AI 금융 분석의 "외부 표준" 
 
 | 단계 | 주차 | 버전 | 산출 | 도구 누적 | 상태 |
 |---|---|---|---|---|---|
-| 거시 (ECOS) | 1~4 | v0.1 → v1.0 | 기준금리·환율·CPI·M2·GDP 등 6만+ 시계열 | 5 | 🎉 **5/5 ✅** |
-| 부동산 | 5~8 | v1.1 → v2.0 | 국토부 실거래가·R-ONE·전세가율 + **`correlate_macro_realestate`** ⭐ | 9 | 📋 Phase A 완료 |
-| 주식 | 9~12 | v2.1 → v3.0 | DART·KRX + **`correlate_macro_stock`** + **`correlate_stock_realestate`** ⭐⭐ | 15 | 📋 Phase A 완료 |
+| 거시 (ECOS) | 1~4 | v0.1 → v1.0 | 기준금리·환율·CPI·M2·GDP 등 6만+ 시계열 | 5 | 🎉 **5/5 ✅** Cowork 검증 |
+| 부동산 | 5~8 | v1.1 → v2.0 | 국토부 실거래가·R-ONE·전세가율 + **`correlate_macro_realestate`** ⭐ | 9 | 🎉 **9/9 ✅** Cowork 검증 |
+| 주식 | 9~12 | v2.1 → v3.0 | DART·KRX + **`correlate_macro_stock`** + **`correlate_stock_realestate`** ⭐⭐ | 15 | 🎉 **15/15 ✅ 코드 완성** (API Key 대기) |
 
 → ⭐ 시너지 도구가 진짜 경쟁력. 단일 데이터 도구는 thin wrapper (외국 MCP 진입 방벽).
 
@@ -69,6 +148,18 @@ ETF Insight의 "내부 두뇌"이자 한국 AI 금융 분석의 "외부 표준" 
 ## 라이선스
 
 [MIT License](LICENSE) — Copyright (c) 2026 MC AI Labs
+
+## 🔒 Privacy Policy (요약)
+
+본 MCP 서버는 **익명화 통계만 수집**합니다 (호출 도구명·시각·응답시간·결과코드·입력해시·국가). 사용자 식별 정보·입력 본문·응답 본문은 *저장하지 않습니다*.
+
+- 보관 기간: 90일 (자동 삭제)
+- 사용 목적: 도구 개선 + Rate limit 정책 설계만
+- GDPR / PIPA 비식별 통계 범주 준수
+
+전체 정책: [PRIVACY.md](./PRIVACY.md) · 보안 신고: [SECURITY.md](./SECURITY.md) · 행동 강령: [CODE_OF_CONDUCT.md](./CODE_OF_CONDUCT.md) · 변경 이력: [CHANGELOG.md](./CHANGELOG.md)
+
+⚠️ **자체 호스팅 시**: 본 정책은 기본 코드에서 *로깅 0건*을 가정합니다. 자체 배포 시 본인의 프라이버시 정책 필요.
 
 ## ⚠️ 면책조항 (Disclaimer) — v0.2 강화
 
