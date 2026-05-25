@@ -3,7 +3,23 @@
 **한국 금융 MCP (Model Context Protocol)** — ECOS · 부동산 · DART · KRX 통합 + ⭐ **시너지 도구 2종**
 
 > AI 금융 분석을 위한 한국 표준 MCP 서버. *자본시장법 4종 미등록 영구 잠금* + 환각 방지 6중 안전망.
-> ⚠️ **현재 v0.1.0 (Private)** — v1.0 거시 5/5 ✅ + v2.0/v3.0 사전 명세 100% 완료. API Key 발급 후 코드 진입.
+> ✅ **현재 v0.2.0 (Private + Fly.io 운영 중)** — 9 도구 활성 (v1.0 거시 5 + v2.0 부동산 4). Cowork·Claude Desktop 호환 검증 완료 (WO-069/070).
+>
+> 🚨 **외부 사용 미권장 (1인 운영 단계)**: 현재 *주인님 개인 사용 + 소규모 검증* 단계입니다. 일반 사용자 호출은 **v1.0 Public 전환 D-day (2026-06-01 잠정)** 이후 권장합니다.
+> 
+> **현재 미도입 보안 항목** (locked D-day에 4건 일괄 도입 예정):
+> - Rate limit 0 → 트래픽 폭주 시 Fly.io 머신 다운 가능
+> - DoS 무방어 → Cloudflare 프록시 미적용 (uptime 7일 후 도입)
+> - 세션 max age 0 → 메모리 누수 가능 (장기 운영 시)
+> - DNS rebinding 미방어 → `allowedHosts` 미설정
+> 
+> **현재 안전 항목** (이미 ✅):
+> - API 키 5중 방어 (.env + .gitignore + Fly.io secrets + 코드 grep 검증 + 에러 메시지 검증 모두 통과)
+> - 자본시장법 영구 금지 7건 (코드 진입 자체 차단)
+> - 부동산 dong/ho/jibun 자동 제거 (정부 정책보다 1단계 보수적)
+> - HTTPS 강제 (Fly.io 기본)
+> 
+> 자세히는 `wiki/decisions/korea-finance-mcp-security-policy-2026-W22.md` 참조.
 
 ## 한 줄 정의
 
