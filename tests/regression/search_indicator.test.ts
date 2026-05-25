@@ -32,8 +32,9 @@ describe("search_indicator — 회귀 5건", () => {
 
     const item = res.data!.find((r) => r.code === "722Y001")!;
     expect(item.name).toBe("한국은행 기준금리");
-    expect(item.unit).toBe("%");
-    expect(item.cycle).toBe("D");
+    // WO-070 (2026-05-25): unit "%" → "연%" (ECOS 응답 UNIT_NAME 그대로), cycle "D" → "M" (월별 일반 사용)
+    expect(item.unit).toBe("연%");
+    expect(item.cycle).toBe("M");
     expect(item.matched_keywords.length).toBeGreaterThan(0);
 
     // warnings에 v0.1 한계 명시 + ECOS 공식 URL 안내 포함
