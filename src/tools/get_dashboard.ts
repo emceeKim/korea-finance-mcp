@@ -80,12 +80,30 @@ export async function executeGetDashboard(
     const cycle = ind.cycle as EcosCycle;
     const { startDate, endDate } = computeRecentPeriod(cycle);
 
-    const raw = await fetchEcosStatistic({
-      statCode: ind.code,
-      cycle,
-      startDate,
-      endDate,
-    });
+    // WO-022 (2026-05-25): INFO-200(해당 데이터 없음)만 catch + skip.
+    // 다른 에러(인증·코드 잘못·네트워크 등)는 throw 전파 (환각 방지 양보 불가).
+    // 이 분리가 *환각 방지 + 견고성* 동시 달성. v0.3 백로그 옵션 C 즉시 실행.
+    let raw;
+    try {
+      raw = await fetchEcosStatistic({
+        statCode: ind.code,
+        cycle,
+        startDate,
+        endDate,
+      });
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      if (/INFO-200|해당하는 데이터가 없습니다/.test(message)) {
+        // 해당 코드만 skip, 다른 코드 계속
+        skipped_codes.push(ind.code);
+        if (i < KNOWN_INDICATORS.length - 1) {
+          await sleep(250);
+        }
+        continue;
+      }
+      // 다른 에러는 전파 (환각 방지)
+      throw err;
+    }
 
     const rows = raw.StatisticSearch?.row ?? [];
     // 최신 *유효* row 찾기 (역순 first valid). 빈 값은 보간 금지, skip.
