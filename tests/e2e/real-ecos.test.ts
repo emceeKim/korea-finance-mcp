@@ -108,18 +108,17 @@ describe("e2e — 실제 ECOS API 호출 (5건)", () => {
   );
 
   // ──────────────────────────────────────────────
-  // e2e-03: compare_indicators — 1개 통계 INFO-200 → throw 전파 (회귀 #4 실측)
+  // e2e-03: compare_indicators 1개 INFO-200 → 시계열 비활성 + 다른 정상 (WO-024 실측)
   // ──────────────────────────────────────────────
-  // ⚠️ 핫픽스 (WO-015, 2026-05-25):
-  //   731Y001(원/달러)은 ECOS에서 *일별*만 운영. cycle='M' 호출 시 INFO-200 반환.
-  //   원래는 align 검증을 의도했지만, 실측 결과 731Y001 cycle='M'이 데이터 없음 →
-  //   우리 코드의 "1개라도 에러면 throw" 룰(회귀 #4)이 실제 작동하는지 e2e 검증으로 재정의.
-  //   회귀 #4가 *모킹 throw*였다면, 본 e2e는 *실제 ECOS INFO-200 → throw* 실측 검증.
+  // 변경 이력:
+  //   WO-015 (2026-05-25): 731Y001 cycle='M' INFO-200 실측 → throw 전파 e2e로 정의
+  //   WO-025 (2026-05-25): WO-024 적용(compare_indicators INFO-200 catch)으로
+  //     INFO-200은 *throw 아닌 시계열 비활성*. e2e-03을 *부분 성공 실측 검증*으로 재정의.
+  //     회귀 #6(모킹 부분 성공)의 *실제 ECOS 응답* 실측 검증.
   itE2E(
-    "#e2e-03 compare_indicators 1개 통계 데이터 없음 → throw 전파 (회귀 #4 실측 검증)",
+    "#e2e-03 compare_indicators 1개 INFO-200 → 시계열 비활성 + 다른 정상 (WO-024 실측)",
     async () => {
-      // promise + assertion 미리 wrapping (WO-005 패턴)
-      const promise = executeCompareIndicators({
+      const res = await executeCompareIndicators({
         indicators: [
           { code: "722Y001", cycle: "M" }, // 기준금리 — 월별 정상
           { code: "731Y001", cycle: "M" }, // 환율 월별 — INFO-200 (실측)
@@ -127,9 +126,24 @@ describe("e2e — 실제 ECOS API 호출 (5건)", () => {
         start: "202602",
         end: "202605",
       });
-      await expect(promise).rejects.toThrow(
-        /INFO-200|해당하는 데이터가 없습니다|ecos/,
-      );
+
+      assertStandardResponse(res);
+      expect(res.data!.series.length).toBe(2);
+
+      // 첫 시계열 (기준금리) — 정상 데이터
+      const first = res.data!.series.find((s) => s.code === "722Y001");
+      expect(first, "기준금리 시계열 존재").toBeDefined();
+      expect(first!.points.length).toBeGreaterThan(0);
+      expect(first!.points.some((p) => p.value !== null)).toBe(true);
+
+      // 두 번째 시계열 (환율 cycle=M) — INFO-200으로 비활성 → 모든 시점 null
+      const second = res.data!.series.find((s) => s.code === "731Y001");
+      expect(second, "환율 시계열 존재 (비활성)").toBeDefined();
+      expect(second!.points.every((p) => p.value === null)).toBe(true);
+
+      // warnings에 누락 안내
+      expect(res.warnings).toBeDefined();
+      expect(res.warnings!.join("\n")).toMatch(/누락|보간|추측/);
     },
     60_000, // 직렬 호출 + delay
   );
