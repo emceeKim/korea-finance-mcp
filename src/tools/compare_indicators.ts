@@ -126,13 +126,37 @@ export async function executeCompareIndicators(
     const ref = validated.indicators[i]!;
     const cycle = (ref.cycle ?? "M") as EcosCycle;
 
-    const raw = await fetchEcosStatistic({
-      statCode: ref.code,
-      cycle,
-      startDate: validated.start,
-      endDate: validated.end,
-      itemCode1: ref.item_code1,
-    });
+    // WO-024 (2026-05-25): INFO-200(데이터 없음)만 catch + 시계열 비활성.
+    // 다른 에러(인증·코드 잘못·네트워크)는 throw 전파 (환각 방지 양보 불가).
+    // WO-022 get_dashboard 패턴 일반화 — 외부 API 부분 실패 견고성.
+    let raw;
+    try {
+      raw = await fetchEcosStatistic({
+        statCode: ref.code,
+        cycle,
+        startDate: validated.start,
+        endDate: validated.end,
+        itemCode1: ref.item_code1,
+      });
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      if (/INFO-200|해당하는 데이터가 없습니다/.test(message)) {
+        // 해당 시계열은 비활성 (points 빈 배열 → align 시 모두 null)
+        rawSeries.push({
+          code: ref.code,
+          label: ref.label ?? ref.code,
+          cycle,
+          unit: "",
+          indicator_name: ref.code,
+          points: [],
+        });
+        if (i < validated.indicators.length - 1) {
+          await sleep(250);
+        }
+        continue;
+      }
+      throw err;
+    }
 
     const rows = raw.StatisticSearch?.row ?? [];
     const points: SeriesPoint[] = rows.map((r) => ({

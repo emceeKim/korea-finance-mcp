@@ -160,6 +160,51 @@ describe("compare_indicators — 회귀 5건", () => {
   });
 
   // ──────────────────────────────────────────────
+  // #6 WO-024 — 1개 시계열 INFO-200 → 시계열 비활성 + 다른 시계열 정상
+  // (compare_indicators INFO-200 catch, WO-022 get_dashboard 패턴 일반화)
+  // ──────────────────────────────────────────────
+  it("#6 1개 시계열 INFO-200 → 해당 시계열 비활성 + 다른 시계열 정상 응답 (WO-024)", async () => {
+    mockFetch
+      .mockResolvedValueOnce(
+        makeEcosResponse([
+          { STAT_CODE: "722Y001", STAT_NAME: "기준금리", TIME: "202402", DATA_VALUE: "3.5", UNIT_NAME: "%" },
+          { STAT_CODE: "722Y001", STAT_NAME: "기준금리", TIME: "202403", DATA_VALUE: "3.5", UNIT_NAME: "%" },
+        ]),
+      )
+      .mockRejectedValueOnce(
+        new Error("[ecos] API 에러 INFO-200: 해당하는 데이터가 없습니다"),
+      );
+
+    const promise = executeCompareIndicators({
+      indicators: [
+        { code: "722Y001", cycle: "M" },
+        { code: "NODATA", cycle: "M" },
+      ],
+      start: "202402",
+      end: "202403",
+    });
+    const assertion = (async () => {
+      const res = await promise;
+
+      assertStandardResponse(res);
+      // 두 시계열 모두 series에 포함
+      expect(res.data!.series.length).toBe(2);
+      // 첫 시계열 정상
+      expect(res.data!.series[0].code).toBe("722Y001");
+      expect(res.data!.series[0].points.length).toBeGreaterThan(0);
+      // 두 번째 시계열 INFO-200 → align 시 모든 시점 null
+      expect(res.data!.series[1].code).toBe("NODATA");
+      expect(
+        res.data!.series[1].points.every((p) => p.value === null),
+      ).toBe(true);
+      // align은 정상 작동 (공통 기간 유지)
+      expect(res.data!.aligned_periods.length).toBeGreaterThan(0);
+    })();
+    await vi.advanceTimersByTimeAsync(300);
+    await assertion;
+  });
+
+  // ──────────────────────────────────────────────
   // #5 align — 비대칭 시점 → null 표시
   // ──────────────────────────────────────────────
   it("#5 align — 한쪽만 있는 시점은 null 표시 (보간 없음)", async () => {
