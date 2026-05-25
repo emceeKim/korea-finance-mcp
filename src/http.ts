@@ -20,6 +20,7 @@ import { createMcpExpressApp } from "@modelcontextprotocol/sdk/server/express.js
 import {
   CallToolRequestSchema,
   ListToolsRequestSchema,
+  isInitializeRequest,
 } from "@modelcontextprotocol/sdk/types.js";
 import { z } from "zod";
 import { config } from "dotenv";
@@ -261,22 +262,117 @@ async function main(): Promise<void> {
     });
   });
 
-  // MCP endpoint — stateless 모드 (요청마다 신규 transport+server)
-  app.all("/mcp", async (req: ExpressRequest, res: ExpressResponse) => {
+  // ============================================================
+  // MCP endpoint — *stateful* 모드 (공식 SDK simpleStreamableHttp 예제 패턴)
+  //
+  // 통념파괴: stateless로 가는 게 "단순"해 보이지만, SDK 1.29의 모든 메이저 클라이언트
+  //   (Anthropic Cowork / Claude Desktop / MCP Inspector / Cursor)는 *stateful sessionId 핸드셰이크*를
+  //   기대한다. stateless는 빈 도구 목록(또는 400)로 보이는 사일런트 실패를 만든다.
+  //
+  // 패턴:
+  //   1) POST /mcp + isInitializeRequest → 신규 transport + onsessioninitialized로 맵에 저장
+  //   2) POST /mcp + Mcp-Session-Id 헤더 → 맵에서 transport 재사용
+  //   3) GET /mcp (SSE) + Mcp-Session-Id → transport.handleRequest로 위임
+  //   4) DELETE /mcp + Mcp-Session-Id → 세션 종료
+  //
+  // @see node_modules/@modelcontextprotocol/sdk/dist/esm/examples/server/simpleStreamableHttp.js
+  // @see wiki/korea-finance-mcp/work-orders.md WO-069
+  // ============================================================
+  const transports: Record<string, StreamableHTTPServerTransport> = {};
+
+  // POST — JSON-RPC 메시지 (initialize / tools/list / tools/call / 기타)
+  app.post("/mcp", async (req: ExpressRequest, res: ExpressResponse) => {
+    const sessionId = req.headers["mcp-session-id"] as string | undefined;
     try {
-      const server = buildServer();
-      const transport = new StreamableHTTPServerTransport({
-        sessionIdGenerator: () => randomUUID(),
-      });
-      res.on("close", () => {
-        transport.close().catch(() => {});
-        server.close().catch(() => {});
-      });
-      await server.connect(transport);
+      let transport: StreamableHTTPServerTransport;
+
+      if (sessionId && transports[sessionId]) {
+        // 기존 세션 재사용
+        transport = transports[sessionId];
+      } else if (!sessionId && isInitializeRequest(req.body)) {
+        // 신규 initialize — transport 생성 + 세션 발급 시 맵에 등록
+        transport = new StreamableHTTPServerTransport({
+          sessionIdGenerator: () => randomUUID(),
+          onsessioninitialized: (sid: string) => {
+            transports[sid] = transport;
+          },
+        });
+        transport.onclose = () => {
+          const sid = transport.sessionId;
+          if (sid && transports[sid]) {
+            delete transports[sid];
+          }
+        };
+        const server = buildServer();
+        await server.connect(transport);
+        await transport.handleRequest(req, res, req.body);
+        return;
+      } else {
+        // 세션 없는데 initialize도 아님 → 표준 거부 응답
+        res.status(400).json({
+          jsonrpc: "2.0",
+          error: { code: -32000, message: "Bad Request: No valid session ID provided" },
+          id: null,
+        });
+        return;
+      }
+
       await transport.handleRequest(req, res, req.body);
     } catch (err) {
       const errMsg = err instanceof Error ? err.message : String(err);
-      process.stderr.write(`[http] /mcp error: ${errMsg}\n`);
+      process.stderr.write(`[http] /mcp POST error: ${errMsg}\n`);
+      if (!res.headersSent) {
+        res.status(500).json({
+          jsonrpc: "2.0",
+          error: { code: -32603, message: "Internal server error" },
+          id: null,
+        });
+      }
+    }
+  });
+
+  // GET — SSE 스트림 (서버 → 클라이언트 알림 채널)
+  app.get("/mcp", async (req: ExpressRequest, res: ExpressResponse) => {
+    const sessionId = req.headers["mcp-session-id"] as string | undefined;
+    if (!sessionId || !transports[sessionId]) {
+      res.status(400).json({
+        jsonrpc: "2.0",
+        error: { code: -32000, message: "Invalid or missing session ID" },
+        id: null,
+      });
+      return;
+    }
+    try {
+      await transports[sessionId].handleRequest(req, res);
+    } catch (err) {
+      const errMsg = err instanceof Error ? err.message : String(err);
+      process.stderr.write(`[http] /mcp GET error: ${errMsg}\n`);
+      if (!res.headersSent) {
+        res.status(500).json({
+          jsonrpc: "2.0",
+          error: { code: -32603, message: "Internal server error" },
+          id: null,
+        });
+      }
+    }
+  });
+
+  // DELETE — 세션 종료
+  app.delete("/mcp", async (req: ExpressRequest, res: ExpressResponse) => {
+    const sessionId = req.headers["mcp-session-id"] as string | undefined;
+    if (!sessionId || !transports[sessionId]) {
+      res.status(400).json({
+        jsonrpc: "2.0",
+        error: { code: -32000, message: "Invalid or missing session ID" },
+        id: null,
+      });
+      return;
+    }
+    try {
+      await transports[sessionId].handleRequest(req, res);
+    } catch (err) {
+      const errMsg = err instanceof Error ? err.message : String(err);
+      process.stderr.write(`[http] /mcp DELETE error: ${errMsg}\n`);
       if (!res.headersSent) {
         res.status(500).json({
           jsonrpc: "2.0",
