@@ -96,6 +96,17 @@ import {
   executeCorrelateStockRealestate,
   CorrelateStockRealestateInputSchema,
 } from "./tools/correlate_stock_realestate.js";
+// WO-112: v1.1 — DART DS004 지분공시 2 도구 추가
+import {
+  getMajorHoldingsTool,
+  executeGetMajorHoldings,
+  GetMajorHoldingsInputSchema,
+} from "./tools/get_major_holdings.js";
+import {
+  getExecutiveHoldingsTool,
+  executeGetExecutiveHoldings,
+  GetExecutiveHoldingsInputSchema,
+} from "./tools/get_executive_holdings.js";
 
 // ============================================================
 // 환경변수 로드 (.env)
@@ -256,8 +267,30 @@ const TOOLS: ToolDefinition[] = [
     execute: async (input) =>
       executeCorrelateStockRealestate(CorrelateStockRealestateInputSchema.parse(input)),
   },
-  // 🎉 v3.0 주식 6/6 완성 (2026-05-25). **15/15 도구 완성**.
+  // 🎉 v3.0 주식 6/6 완성 (2026-05-25). **15/15 도구**.
   // 시너지 2종 (correlate_macro_stock + correlate_stock_realestate ⭐⭐ 한국 유일) 포함.
+  // ============================================================
+  // v1.1 (2026-05-31 WO-112) — DART DS004 지분공시 2 도구 추가 = 17/17
+  // 자본시장법 §147 (5% 룰) + §148·149 (임원·주요주주). *조회만*, 해석 X.
+  // ============================================================
+  {
+    name: getMajorHoldingsTool.name,
+    title: getMajorHoldingsTool.title,
+    description: getMajorHoldingsTool.description,
+    inputSchema: getMajorHoldingsTool.inputSchema,
+    annotations: getMajorHoldingsTool.annotations,
+    execute: async (input) =>
+      executeGetMajorHoldings(GetMajorHoldingsInputSchema.parse(input)),
+  },
+  {
+    name: getExecutiveHoldingsTool.name,
+    title: getExecutiveHoldingsTool.title,
+    description: getExecutiveHoldingsTool.description,
+    inputSchema: getExecutiveHoldingsTool.inputSchema,
+    annotations: getExecutiveHoldingsTool.annotations,
+    execute: async (input) =>
+      executeGetExecutiveHoldings(GetExecutiveHoldingsInputSchema.parse(input)),
+  },
 ];
 
 // ============================================================
@@ -266,7 +299,7 @@ const TOOLS: ToolDefinition[] = [
 const server = new Server(
   {
     name: "korea-finance-mcp",
-    version: "0.2.0", // WO-087: package.json과 동기화 (v2.0 release)
+    version: "1.1.0", // WO-115: v1.1 — DS004 지분공시 2 도구 추가
   },
   {
     capabilities: {

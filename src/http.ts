@@ -103,6 +103,17 @@ import {
   executeCorrelateStockRealestate,
   CorrelateStockRealestateInputSchema,
 } from "./tools/correlate_stock_realestate.js";
+// WO-112: v1.1 — DART DS004 지분공시 2 도구 추가
+import {
+  getMajorHoldingsTool,
+  executeGetMajorHoldings,
+  GetMajorHoldingsInputSchema,
+} from "./tools/get_major_holdings.js";
+import {
+  getExecutiveHoldingsTool,
+  executeGetExecutiveHoldings,
+  GetExecutiveHoldingsInputSchema,
+} from "./tools/get_executive_holdings.js";
 
 // ============================================================
 // 환경변수 로드
@@ -263,6 +274,25 @@ const TOOLS: ToolDefinition[] = [
     execute: async (input) =>
       executeCorrelateStockRealestate(CorrelateStockRealestateInputSchema.parse(input)),
   },
+  // v1.1 (WO-112) — DART DS004 지분공시 2 도구. 15 → 17 도구
+  {
+    name: getMajorHoldingsTool.name,
+    title: getMajorHoldingsTool.title,
+    description: getMajorHoldingsTool.description,
+    inputSchema: getMajorHoldingsTool.inputSchema,
+    annotations: getMajorHoldingsTool.annotations,
+    execute: async (input) =>
+      executeGetMajorHoldings(GetMajorHoldingsInputSchema.parse(input)),
+  },
+  {
+    name: getExecutiveHoldingsTool.name,
+    title: getExecutiveHoldingsTool.title,
+    description: getExecutiveHoldingsTool.description,
+    inputSchema: getExecutiveHoldingsTool.inputSchema,
+    annotations: getExecutiveHoldingsTool.annotations,
+    execute: async (input) =>
+      executeGetExecutiveHoldings(GetExecutiveHoldingsInputSchema.parse(input)),
+  },
 ];
 
 // ============================================================
@@ -270,7 +300,7 @@ const TOOLS: ToolDefinition[] = [
 // ============================================================
 function buildServer(): Server {
   const server = new Server(
-    { name: "korea-finance-mcp", version: "0.2.0" }, // WO-087: v2.0 동기화
+    { name: "korea-finance-mcp", version: "1.1.0" }, // WO-115: v1.1 — DS004 지분공시 2 도구 추가 = 17
     { capabilities: { tools: {} } },
   );
 
@@ -375,7 +405,7 @@ async function main(): Promise<void> {
     res.status(200).json({
       status: "ok",
       service: "korea-finance-mcp",
-      version: "0.2.0", // WO-087: /healthz 응답 동기화
+      version: "1.1.0", // WO-115: v1.1 동기화
       tools: TOOLS.length,
       timestamp: new Date().toISOString(),
     });

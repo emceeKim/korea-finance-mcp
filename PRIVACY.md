@@ -1,78 +1,102 @@
 # Privacy Policy
 
-**Last updated**: 2026-05-25
-**Project**: korea-finance-mcp v0.2.0
+**Last updated**: 2026-05-31 (v1.1)
+**Project**: korea-finance-mcp v0.2.0+
 **Operator**: MC AI Labs (mckim890@gmail.com)
+**Applies to**: 공식 운영 인스턴스 (`korea-finance-mcp-divine-hillside-8872.fly.dev`)
 
-## 1. What we collect
+본 정책은 서비스 이용으로 동의한 것으로 간주합니다. 별도의 사전 동의 절차는 두지 않습니다.
 
-This MCP server collects **anonymized statistics only** to improve tool quality and manage rate limits:
+## 1. 수집할 수 있는 데이터 (Data we may collect)
 
-| Data | Purpose | Retention |
+본 서비스는 운영·개선·안전 보장을 위해 다음 범주의 데이터를 자동으로 수집·이용할 수 있습니다.
+
+| Category | Details | Retention |
 |---|---|---|
-| Tool name (e.g., `get_indicator`) | Usage frequency analysis | 90 days |
-| Timestamp (UTC) | Time-of-day patterns | 90 days |
-| Response time (ms) | Performance monitoring | 90 days |
-| Result code (`OK` / `INFO-200` / `ERROR_*`) | Error pattern detection | 90 days |
-| SHA-256 hash of input | De-duplicated query frequency (irreversible) | 90 days |
-| Client country (derived from IP, country-only) | Geographic distribution | 90 days |
+| 자동 수집 정보 | 접속 시각·요청 도구명·응답 시간·결과 코드·요청 출처(국가 단위) | 최대 12개월 또는 법령상 보존 기간 |
+| 입력 메타데이터 | 입력값의 해시 (SHA-256, irreversible) — 중복 호출 패턴 분석용 | 최대 12개월 |
+| 진단 로그 | 에러 스택 트레이스·세션 통계·rate-limit 카운터 | 최대 90일 |
+| 운영 통계 | 도구별 일일 호출량·평균 응답시간 (aggregate) | 영구 (비식별) |
 
-## 2. What we do NOT collect
+데이터 처리 위탁은 **Fly.io(인프라 운영)** 및 **Supabase(향후 도입 시 익명 통계 저장)**에 한하며, 한국 정부 공공 API(ECOS·RTMS·R-ONE·DART·KRX)로의 요청 전달이 포함됩니다.
 
-- ❌ User identifiers (email, name, account)
-- ❌ Authentication tokens or API keys
-- ❌ Input contents (only SHA-256 hashes, irreversible)
-- ❌ Response contents (only success/error codes)
-- ❌ Session IDs (`Mcp-Session-Id` is server-internal only)
-- ❌ Anthropic-side user information (we never receive this)
-- ❌ Full IP addresses (only country-level derived)
+## 2. 민감 데이터 보호 (Sensitive data protection)
 
-## 3. How we use it
+다음 범주는 **어떠한 경우에도 저장하지 않습니다**:
 
-Aggregate statistics power:
-- Tool improvement priorities (which tools are used most)
-- Rate-limit policy design (peak hours, anomaly detection)
-- Public dashboards (e.g., "total monthly calls", anonymized)
+- 인증 토큰·API Key·세션 비밀
+- 개인 식별 정보 (이름·이메일·주민번호·계좌번호)
+- 비밀번호·OTP·금융 결제 정보
+- 입력값의 *원문 본문* (해시값만 보관)
+- 응답값의 *본문* (성공/실패 코드만 보관)
 
-## 4. Third-party services
+상기 항목이 입력에 포함된 경우, *해시화 직전 sanitize 단계에서 즉시 폐기*됩니다.
 
-This server forwards data requests to **publicly available Korean government APIs**:
-- Bank of Korea ECOS — https://ecos.bok.or.kr
-- Korea Ministry of Land RTMS — https://www.data.go.kr
-- Korea Real Estate Board R-ONE — https://www.r-one.co.kr
+## 3. 데이터 이용 목적 (Purpose)
 
-We do not enrich or alter the response data. Each upstream provider has its own privacy policy.
+수집된 데이터는 다음 목적에 한해 이용됩니다:
 
-## 5. Data retention & deletion
+- 서비스 제공·유지·개선 (도구 품질·응답 속도 최적화)
+- Rate-limit·DoS 방어 등 안전 운영
+- 비식별 통계 (총 호출량·시간대별 패턴·인기 도구 등)
+- 운영자 자체 분석 또는 공개 대시보드 (집계 데이터만)
 
-- All anonymized statistics are auto-deleted **90 days** after collection
-- We do not store data beyond this window
-- No user-initiated deletion request needed (all data is already anonymized)
+## 4. 제3자 제공 (Third parties)
 
-## 6. Compliance
+본 서비스는 공공 데이터 조회 시 다음 한국 정부·공공기관 API로 요청을 *전달*합니다:
 
-This policy aims to comply with:
-- **GDPR** (EU General Data Protection Regulation) — anonymized statistics fall under recital 26
-- **PIPA** (Korea Personal Information Protection Act) — no personal data collected
-- **Anthropic Connectors Directory** privacy policy requirements
+- 한국은행 ECOS — https://ecos.bok.or.kr
+- 국토교통부 실거래가 (RTMS) — https://www.data.go.kr
+- 한국부동산원 R-ONE — https://www.r-one.co.kr
+- DART OpenDART — https://opendart.fss.or.kr
+- KRX (한국거래소) — https://data.krx.co.kr (공공데이터포털 경유)
 
-## 7. Changes to this policy
+각 업스트림 제공자의 자체 개인정보 정책이 별도 적용됩니다. 본 서비스는 응답 데이터를 *변경·가공·결합·외부 전송*하지 않습니다.
 
-Material changes will be:
-- Announced in `CHANGELOG.md`
-- Reflected in this file's `Last updated` field
-- Posted to GitHub Issues for public visibility
+## 5. 데이터 보유·파기 (Retention & deletion)
 
-## 8. Contact
+- 각 범주별 보유 기간은 §1 표를 따릅니다.
+- 보유 기간 경과 시 자동 파기되며, 별도 신청 절차 없이 처리됩니다.
+- 운영 통계(aggregate)는 비식별 처리 후 영구 보관될 수 있습니다.
 
-Questions or concerns: **mckim890@gmail.com**
+## 6. 사용자 권리 (User rights)
 
-Security issues: see [SECURITY.md](./SECURITY.md)
+본 서비스는 *익명* 운영을 원칙으로 하여 *사용자 식별 정보를 수집하지 않으므로*, 일반적인 *개인정보 열람·정정·삭제* 청구의 대상이 되는 데이터를 보유하지 않습니다.
+
+다만 다음 사항에 대한 문의는 가능합니다:
+- 본 정책 자체에 대한 질의 또는 변경 요청 검토
+- 보안 취약점·잘못된 동작 신고 ([SECURITY.md](./SECURITY.md))
+
+## 7. 법령 준수 (Compliance)
+
+본 정책은 다음 기준에 부합하도록 설계됐습니다:
+
+- **PIPA** (개인정보 보호법, 한국) — 개인정보 비수집 + 익명 처리
+- **GDPR** (EU) — recital 26 (익명 통계는 GDPR 적용 대상 아님)
+- **Anthropic Connectors Directory** 정책 요건
+
+## 8. 정책 변경 (Changes)
+
+본 정책의 *중요 변경*은 다음 채널을 통해 사전 안내합니다:
+
+- `CHANGELOG.md`
+- 본 파일의 `Last updated` 필드 갱신
+- GitHub Discussions / Issues 공지
+
+## 9. 연락처 (Contact)
+
+- 일반 문의: **mckim890@gmail.com**
+- 보안 신고: [SECURITY.md](./SECURITY.md)
+- 운영자: **MC AI Labs** (1인 운영, 대한민국)
 
 ---
 
-## 9. Self-hosting notice
+## 10. Self-hosting (자체 호스팅 면책)
 
-If you self-host this MCP server (clone & deploy your own instance), **the above policy does not automatically apply to your deployment**. You are responsible for your users' data and must publish your own privacy policy.
+본 정책은 **공식 운영 인스턴스에 한해 적용**됩니다. 본 코드를 fork하여 자체 배포하는 경우:
 
-The default code does not log any data unless you explicitly enable logging (see [decisions/...usage-logging-policy](https://github.com/emceeKim/mywiki/blob/main/wiki/decisions/korea-finance-mcp-usage-logging-policy-2026-W22.md)).
+- 본 정책은 자동으로 *적용되지 않습니다*.
+- 자체 배포자는 *자신의 사용자에 대한 개인정보 보호 책임*을 부담합니다.
+- 자체 정책을 별도로 게시할 의무가 있습니다.
+
+기본 코드는 외부 데이터베이스 연결을 *기본 비활성*으로 둡니다. 별도 통합(Supabase 등)을 활성화하는 경우 사용자에게 *변경 사항 고지 의무*가 발생할 수 있습니다.

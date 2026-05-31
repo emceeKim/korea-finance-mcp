@@ -5,13 +5,14 @@
 
 ![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)
 ![MCP](https://img.shields.io/badge/MCP-compatible-blue)
-![Tools](https://img.shields.io/badge/tools-15-brightgreen)
+![Tools](https://img.shields.io/badge/tools-17-brightgreen)
 ![Korea Finance](https://img.shields.io/badge/data-Korea_Finance-red)
-![Status](https://img.shields.io/badge/status-Public_v1.0-blue)
+![Status](https://img.shields.io/badge/status-Public_v1.1-blue)
 
 한국은행 ECOS · 국토부 RTMS · 한국부동산원 R-ONE · DART · KRX 통합 + ⭐⭐ **시너지 도구 2종 (외국 MCP 진입 불가)** + *자본시장법 4종 미등록 영구 잠금* + 환각 방지 6중 안전망.
 
-**🎉 v1.0 Public 릴리스** (2026-05-25). Cowork · Claude Desktop · MCP Inspector · Cursor 호환 검증 완료.
+**🎉 v1.1 Release** (2026-05-31) — DART DS004 지분공시 2 도구 추가 (5% 룰 + 임원·주요주주). 17/17 도구.
+**v1.0 Public** (2026-05-25) — Cowork · Claude Desktop · MCP Inspector · Cursor 호환 검증 완료.
 
 ---
 
@@ -73,13 +74,14 @@ npm start  # 또는 npm run start:http for remote deployment
 
 ---
 
-## 🎯 15 도구 (한 화면 요약)
+## 🎯 17 도구 (한 화면 요약)
 
 | 카테고리 | 도구 | 데이터원 | 차별화 |
 |---|---|---|---|
 | **거시 (5)** | `get_indicator` / `search_indicator` / `get_timeseries` / `compare_indicators` / `get_dashboard` | 한국은행 ECOS | KNOWN_INDICATORS 정적 사전 (추측 금지) |
 | **부동산 (4)** | `get_realestate_price` / `get_housing_index` / `get_jeonse_ratio` / **`correlate_macro_realestate`** ⭐ | 국토부 RTMS + R-ONE | dong/ho/jibun 자동 제거 (정부보다 1단계 보수적) |
 | **주식 (6)** | `get_disclosure` / `get_financials` / `get_stock_price` / `get_market_index` / **`correlate_macro_stock`** ⭐ / **`correlate_stock_realestate`** ⭐⭐ | DART + KRX | **한국 유일** 시너지 (외국 MCP 진입 불가) |
+| **지분공시 (2)** 🆕 v1.1 | `get_major_holdings` (5% 룰) / `get_executive_holdings` (임원·주요주주) | DART DS004 | 자본시장법 §147~149 *조회만*, 해석·예측 X |
 
 ### ⭐⭐ 시너지 도구의 진짜 차별화
 

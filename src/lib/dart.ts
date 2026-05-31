@@ -1,9 +1,13 @@
 /**
- * korea-finance-mcp — DART OpenAPI 클라이언트 (DS001/DS002/DS003/DS005)
+ * korea-finance-mcp — DART OpenAPI 클라이언트 (DS001/DS002/DS003/DS004/DS005)
  *
  * @see https://opendart.fss.or.kr/guide/main.do
  * @see wiki/korea-finance-mcp/stock-api-research.md §1
  * @see wiki/korea-finance-mcp/api-key-issuance-guide-stock.md Step 1
+ *
+ * v1.1 (WO-112): DS004 지분공시 추가 — majorstock(5% 룰) + elestock(임원/주요주주)
+ *   ⚠️ 자본시장법 §147~149 (대량보유·임원 보고)는 *조회만* 합법.
+ *      예측·추천·"임박" 등 해석 응답은 sanitizeDartAnalysis로 차단.
  *
  * 코드 시그니처 패턴 (realestate.ts/rone.ts와 정합):
  *   - 6 패턴 적용 (buildResponse / INFO-200 catch / KNOWN_* 정적 사전 / 캐시 1시간 / sanitize / promise+assertion 사전 래핑)
@@ -24,6 +28,10 @@ export const DART_ENDPOINTS = {
   company_info: `${DART_BASE_URL}/company.json`,
   /** 재무제표 — 단일회사 전체 (DS003) */
   financials_single: `${DART_BASE_URL}/fnlttSinglAcntAll.json`,
+  /** 대량보유 상황 보고 (DS004, 자본시장법 §147 5% 룰) */
+  major_stock: `${DART_BASE_URL}/majorstock.json`,
+  /** 임원·주요주주 소유 보고 (DS004, 자본시장법 §148·149) */
+  executive_stock: `${DART_BASE_URL}/elestock.json`,
   /** 회사 corpCode 매핑 (1회 다운로드, XML, KNOWN_COMPANIES 생성용) */
   corp_code_xml: `${DART_BASE_URL}/corpCode.xml`,
 } as const;
@@ -86,6 +94,58 @@ export interface DartCompanyInfo {
   est_dt: string;
   /** 결산월 MM */
   acc_mt: string;
+}
+
+// ============================================================
+// DS004 — 대량보유 상황 보고 (majorstock, 5% 룰)
+// ============================================================
+export interface DartMajorStockItem {
+  /** 공시 접수번호 */
+  rcept_no: string;
+  /** 회사 고유번호 */
+  corp_code: string;
+  /** 회사명 */
+  corp_name: string;
+  /** 보고자명 */
+  repror: string;
+  /** 보고 사유 (예: 신규보고, 변동보고) */
+  report_resn: string;
+  /** 주식 종류 (예: 보통주, 우선주) */
+  stkqy_irds: string;
+  /** 주식 등 보유 비율 (%) */
+  stkrt: string;
+  /** 보유 주식 등의 수 */
+  stkqy: string;
+  /** 보고일자 YYYYMMDD */
+  rcept_dt: string;
+}
+
+// ============================================================
+// DS004 — 임원·주요주주 소유 보고 (elestock)
+// ============================================================
+export interface DartExecutiveStockItem {
+  /** 공시 접수번호 */
+  rcept_no: string;
+  /** 회사 고유번호 */
+  corp_code: string;
+  /** 회사명 */
+  corp_name: string;
+  /** 보고자명 */
+  repror: string;
+  /** 임원 등록 여부 (Y/N) */
+  isu_exctv_rgist_at?: string;
+  /** 임원 직위 */
+  isu_exctv_ofcps?: string;
+  /** 주요주주 여부 (Y/N) */
+  isu_main_shrholdr?: string;
+  /** 특정증권 등의 종류 (예: 보통주) */
+  sp_stock_lmp?: string;
+  /** 변동일자 YYYYMMDD */
+  sp_stock_lmp_irds_rate?: string;
+  /** 특정증권 등 소유 주식 수 */
+  sp_stock_lmp_cnt?: string;
+  /** 보고일자 YYYYMMDD */
+  rcept_dt: string;
 }
 
 // ============================================================
@@ -313,6 +373,115 @@ export async function fetchDartCompanyInfo(
   };
   DART_CACHE.set(cacheKey, { ts: Date.now(), data: info });
   return info;
+}
+
+// ============================================================
+// DS004-1 — 대량보유 상황 보고 (majorstock, 5% 룰)
+// ============================================================
+// 자본시장법 §147 — 어떤 종목 5% 이상 보유자는 *공시 의무*.
+// 우리 도구는 *공시된 데이터 조회만*. 예측·해석·"임박" 응답 X.
+// ============================================================
+export interface FetchDartMajorStockOpts {
+  corp_code: string;
+  api_key?: string;
+}
+
+export async function fetchDartMajorStock(
+  opts: FetchDartMajorStockOpts,
+): Promise<DartMajorStockItem[]> {
+  validateCorpCode(opts.corp_code);
+
+  const apiKey = opts.api_key ?? process.env.DART_API_KEY ?? "";
+  if (!apiKey) {
+    throw new Error(
+      "[dart] DART_API_KEY 미설정. wiki/korea-finance-mcp/api-key-issuance-guide-stock.md Step 1 참조.",
+    );
+  }
+
+  const url = `${DART_ENDPOINTS.major_stock}?crtfc_key=${apiKey}&corp_code=${opts.corp_code}`;
+  const cacheKey = `majorstock|${opts.corp_code}`;
+
+  const cached = DART_CACHE.get(cacheKey);
+  if (cached && Date.now() - cached.ts < CACHE_TTL_MS) {
+    return cached.data as DartMajorStockItem[];
+  }
+
+  const res = await fetch(url, { headers: { Accept: "application/json" } });
+  if (!res.ok) {
+    throw new Error(`[dart] HTTP ${res.status} ${res.statusText} (majorstock)`);
+  }
+  const json = (await res.json()) as {
+    status: string;
+    message: string;
+    list?: DartMajorStockItem[];
+  };
+
+  // INFO-200 패턴 (코드 시그니처 #3) — 데이터 없음 = 빈 배열
+  if (json.status === "013") {
+    const empty: DartMajorStockItem[] = [];
+    DART_CACHE.set(cacheKey, { ts: Date.now(), data: empty });
+    return empty;
+  }
+  if (json.status !== "000") {
+    throw new Error(`[dart] majorstock status=${json.status}: ${json.message}`);
+  }
+
+  const list = json.list ?? [];
+  DART_CACHE.set(cacheKey, { ts: Date.now(), data: list });
+  return list;
+}
+
+// ============================================================
+// DS004-2 — 임원·주요주주 소유 보고 (elestock)
+// ============================================================
+// 자본시장법 §148·149 — 임원·주요주주(10% 이상) 보유 변동 *공시 의무*.
+// 우리 도구는 *공시된 데이터 조회만*. 예측·해석 응답 X.
+// ============================================================
+export interface FetchDartExecutiveStockOpts {
+  corp_code: string;
+  api_key?: string;
+}
+
+export async function fetchDartExecutiveStock(
+  opts: FetchDartExecutiveStockOpts,
+): Promise<DartExecutiveStockItem[]> {
+  validateCorpCode(opts.corp_code);
+
+  const apiKey = opts.api_key ?? process.env.DART_API_KEY ?? "";
+  if (!apiKey) {
+    throw new Error("[dart] DART_API_KEY 미설정");
+  }
+
+  const url = `${DART_ENDPOINTS.executive_stock}?crtfc_key=${apiKey}&corp_code=${opts.corp_code}`;
+  const cacheKey = `elestock|${opts.corp_code}`;
+
+  const cached = DART_CACHE.get(cacheKey);
+  if (cached && Date.now() - cached.ts < CACHE_TTL_MS) {
+    return cached.data as DartExecutiveStockItem[];
+  }
+
+  const res = await fetch(url, { headers: { Accept: "application/json" } });
+  if (!res.ok) {
+    throw new Error(`[dart] HTTP ${res.status} ${res.statusText} (elestock)`);
+  }
+  const json = (await res.json()) as {
+    status: string;
+    message: string;
+    list?: DartExecutiveStockItem[];
+  };
+
+  if (json.status === "013") {
+    const empty: DartExecutiveStockItem[] = [];
+    DART_CACHE.set(cacheKey, { ts: Date.now(), data: empty });
+    return empty;
+  }
+  if (json.status !== "000") {
+    throw new Error(`[dart] elestock status=${json.status}: ${json.message}`);
+  }
+
+  const list = json.list ?? [];
+  DART_CACHE.set(cacheKey, { ts: Date.now(), data: list });
+  return list;
 }
 
 // ============================================================

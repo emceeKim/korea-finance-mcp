@@ -7,11 +7,36 @@ versioning by [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
-### Planned for v1.0 Public (D-day 2026-06-01 잠정)
-- ⏳ DART + KRX API Key 발급 (주인님) → v3.0 작동 시작
-- ⏳ KNOWN_COMPANIES + KNOWN_TICKERS 데이터 채움 (DART corpCode.xml 역검증)
-- ⏳ Cloudflare proxy (after uptime 7 days verification)
-- ⏳ Anthropic MCP Directory 제출 (15 도구)
+### Planned for v1.2
+- ⏳ Cloudflare proxy + ALLOWED_HOSTS 활성화 (uptime 7일 후)
+- ⏳ 시너지 도구 정밀화 (lag 자동 탐지, 3 도구)
+- ⏳ Anthropic MCP Directory 제출 (후순위)
+
+## [1.1.0] — 2026-05-31 🆕 v1.1 — DART DS004 지분공시 2 도구 추가 = 17 도구
+
+### Added
+- **2 new DART DS004 tools** (자본시장법 §147~149 *조회만*, 해석·예측 X):
+  - `get_major_holdings` — 대량보유 상황 보고 (5% 룰, §147)
+  - `get_executive_holdings` — 임원·주요주주 소유 보고 (§148·149)
+- `KNOWN_TICKERS` 30건 등록 — KOSPI 20 + KOSDAQ 10 (KRX 공시 검증)
+- `KNOWN_COMPANIES` 2건 등록 — 삼성전자·SK하이닉스 (DART corp_code 검증)
+- `findCorpCodeByTicker` 헬퍼 — ticker → corp_code 매핑
+- `src/lib/dart.ts`: `fetchDartMajorStock` + `fetchDartExecutiveStock` (캐시 1시간, INFO-200 패턴)
+
+### Changed
+- README: 15 도구 → **17 도구** 표 갱신. "무엇을 할 수 있나요" 사용자 친화 도입부 추가.
+- README: 1일 마라톤 + 로드맵 12주 표 제거 (대중성 ↑).
+- PRIVACY: 네이버 컨셉 — "수집 안 함" 약속 제거, "수집 가능 카테고리" 명시.
+- src/http.ts: `app.set('trust proxy', 1)` 추가 — Fly.io 프록시 신뢰 → 실제 사용자 IP 식별.
+
+### Security
+- **Express trust proxy 핫픽스**: express-rate-limit이 X-Forwarded-For 정확 인식 → 분산 공격 방어.
+
+### Internal
+- WO-110: README + trust proxy + PRIVACY 통합 핫픽스
+- WO-111: KNOWN_TICKERS 30건 데이터 추가
+- WO-112: DART DS004 2 도구 추가
+- WO-113: DNS rebinding 보호 코드 검증 (활성화 deferred)
 
 ## [0.3.0] — 2026-05-25 🎉 v3.0 Stock 6 Tools + 2 Synergy = 15 Tools Complete
 

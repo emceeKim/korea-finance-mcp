@@ -1,6 +1,6 @@
 {
   "name": "korea-finance-mcp",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Korea Finance MCP ??ECOS · Real Estate · DART · KRX. Korea's first legally-safe (Capital Markets Act compliant) MCP server with 15 tools + 2 synergy tools (Korea-unique).",
   "type": "module",
   "main": "dist/index.js",
