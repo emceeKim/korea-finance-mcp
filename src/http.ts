@@ -365,6 +365,11 @@ async function main(): Promise<void> {
     allowedHosts: ALLOWED_HOSTS.length > 0 ? ALLOWED_HOSTS : undefined,
   });
 
+  // WO-110 핫픽스: Fly.io 프록시 (1-hop) 신뢰 → X-Forwarded-For로 실제 사용자 IP 식별
+  //   미설정 시 express-rate-limit이 모든 요청을 같은 IP로 합산 → 분산 공격 0방어
+  //   '1' = Fly.io 프록시만 신뢰 (true는 너무 관대해 IP 스푸핑 위험)
+  app.set("trust proxy", 1);
+
   // 헬스체크 — Fly.io 헬스체크용
   app.get("/healthz", (_req: unknown, res: ExpressResponse) => {
     res.status(200).json({
