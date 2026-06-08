@@ -115,11 +115,26 @@ describe("get_realestate_price 회귀 re-08~13", () => {
     await expect(executeGetRealEstatePrice(input)).rejects.toThrow("HTTP 500");
   });
 
-  it("re-16: 미등록 region_code → ZodError (KNOWN_REGIONS 추측 금지)", async () => {
+  it("re-16: 잘못된 형식 region_code → ZodError (v1.2: KNOWN_REGIONS 미등록은 허용, 형식만 검증)", async () => {
+    // v1.2 (WO-118): 미등록 코드도 형식만 정확하면 RTMS API에 위임.
+    // 4자리 같은 *잘못된 형식*만 차단.
+    expect(() =>
+      GetRealEstatePriceInputSchema.parse({
+        region_code: "9999",  // 4자리 = 잘못된 형식
+        year_month: "202405",
+      }),
+    ).toThrow(z.ZodError);
+  });
+
+  it("re-17: 미등록 region_code도 통과 (v1.2 WO-118 — 정부 RTMS 수준 확장)", async () => {
+    // 99999는 미등록이지만 형식 정확 → 통과. RTMS API가 빈 응답 → INFO-200.
+    mockFetch.mockResolvedValueOnce([]); // 미등록 코드 = 데이터 없음
     const input = GetRealEstatePriceInputSchema.parse({
-      region_code: "99999",  // 미등록
+      region_code: "99999",
       year_month: "202405",
     });
-    await expect(executeGetRealEstatePrice(input)).rejects.toThrow(z.ZodError);
+    const result = await executeGetRealEstatePrice(input);
+    // ZodError 안 던짐. RTMS 빈 응답 → INFO-200 fallback.
+    expect(result).toBeDefined();
   });
 });

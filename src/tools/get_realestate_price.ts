@@ -57,17 +57,10 @@ interface RealEstateMeta {
 }
 
 export async function executeGetRealEstatePrice(input: GetRealEstatePriceInput) {
-  if (!(input.region_code in KNOWN_REGIONS)) {
-    throw new z.ZodError([
-      {
-        code: "custom",
-        path: ["region_code"],
-        message: `미등록 region_code: ${input.region_code}. KNOWN_REGIONS (${Object.keys(KNOWN_REGIONS).length}건) 사전 매핑 통과만 허용. 추측 금지 (WO-018).`,
-      },
-    ]);
-  }
-
-  const regionMeta = KNOWN_REGIONS[input.region_code]!;
+  // v1.2 (WO-118): KNOWN_REGIONS 강제 검증 제거 — 5자리 형식만 검증 (validateRegionCode).
+  //   미등록 코드는 RTMS API에 위임 → 빈 응답 시 INFO-200 fallback (정부 RTMS 수준 정렬).
+  //   regionMeta 없으면 region_name fallback 사용 ("법정동 코드 {code}").
+  const regionMeta = KNOWN_REGIONS[input.region_code];
   const propType = input.property_type ?? "apt";
   const sourceUrl = RTMS_ENDPOINTS[propType];
 
@@ -104,7 +97,7 @@ export async function executeGetRealEstatePrice(input: GetRealEstatePriceInput) 
 
   const meta: RealEstateMeta = {
     region_code: input.region_code,
-    region_name: regionMeta.name_ko,
+    region_name: regionMeta?.name_ko ?? `법정동 코드 ${input.region_code}`,
     year_month: input.year_month,
     property_type: propType,
     data_count: trades.length,
