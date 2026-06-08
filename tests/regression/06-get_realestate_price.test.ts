@@ -30,10 +30,10 @@ describe("get_realestate_price 회귀 re-08~13", () => {
     mockFetch.mockReset();
   });
 
-  it("re-08: apt 매매 정상 응답 + dong/ho/jibun 필드 부재 검증", async () => {
+  it("re-08: apt 매매 정상 응답 + dong/ho 마스킹 검증 (v1.2: jibun·floor 공개, 정부 RTMS 수준)", async () => {
     mockFetch.mockResolvedValueOnce([
-      _mockRtmsTrade({ complex_name: "강남힐스테이트", floor: 12 }),
-      _mockRtmsTrade({ complex_name: "타워팰리스", floor: 25 }),
+      _mockRtmsTrade({ complex_name: "강남힐스테이트", floor: 12, jibun: "736-8" }),
+      _mockRtmsTrade({ complex_name: "타워팰리스", floor: 25, jibun: "100-3" }),
     ]);
 
     const input = GetRealEstatePriceInputSchema.parse({
@@ -47,12 +47,15 @@ describe("get_realestate_price 회귀 re-08~13", () => {
     const data = (result as { data: { trades: Array<Record<string, unknown>>; meta: { data_count: number; region_name: string } } }).data;
     expect(data.meta.region_name).toContain("강남");
     expect(data.meta.data_count).toBe(2);
+    // 정부 RTMS 마스킹 정책 — dong/ho는 제거
     expect(data.trades[0]).not.toHaveProperty("dong");
     expect(data.trades[0]).not.toHaveProperty("ho");
-    expect(data.trades[0]).not.toHaveProperty("jibun");
+    // 정부 RTMS 공개 정책 — jibun/floor는 보존 (v1.2 변경)
+    expect(data.trades[0]).toHaveProperty("jibun");
+    expect(data.trades[0]).toHaveProperty("floor");
   });
 
-  it("re-09: villa property_type 정상 응답 + 개인정보 필드 차단", async () => {
+  it("re-09: villa property_type 정상 응답 + 개인정보 필드 차단 (dong/ho만)", async () => {
     mockFetch.mockResolvedValueOnce([_mockRtmsTrade()]);
     const input = GetRealEstatePriceInputSchema.parse({
       region_code: "11440", year_month: "202405", property_type: "villa",
@@ -63,7 +66,7 @@ describe("get_realestate_price 회귀 re-08~13", () => {
     expect(data.trades[0]).not.toHaveProperty("ho");
   });
 
-  it("re-10: house property_type 정상 응답 + 개인정보 차단", async () => {
+  it("re-10: house property_type 정상 응답 + 개인정보 차단 (dong/ho만)", async () => {
     mockFetch.mockResolvedValueOnce([_mockRtmsTrade()]);
     const input = GetRealEstatePriceInputSchema.parse({
       region_code: "26110", year_month: "202405", property_type: "house",
@@ -71,7 +74,7 @@ describe("get_realestate_price 회귀 re-08~13", () => {
     const result = await executeGetRealEstatePrice(input);
     const data = (result as { data: { trades: Record<string, unknown>[] } }).data;
     expect(data.trades[0]).not.toHaveProperty("dong");
-    expect(data.trades[0]).not.toHaveProperty("jibun");
+    expect(data.trades[0]).not.toHaveProperty("ho");
   });
 
   it("re-11: property_type 미지원 enum → ZodError", () => {

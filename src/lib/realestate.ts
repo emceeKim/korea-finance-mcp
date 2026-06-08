@@ -65,7 +65,10 @@ export interface RealEstateTrade {
   price: number;
   trade_date: string;
   floor?: number;
-  // dong/ho/jibun 의도적 제거 — 정부 정책보다 1단계 보수적
+  /** 지번 (예: "736-8" 또는 "100-3"). 본번-부번 결합. v1.2부터 공개. */
+  jibun?: string;
+  // dong/ho 의도적 제거 — 국토부 RTMS 공식 마스킹 정책 준수
+  // v1.2 (WO-116): jibun·floor 공개 — 정부 RTMS rt.molit.go.kr 공개 수준과 동일
 }
 
 export function sanitizeTrade(raw: Record<string, unknown>, regionCode: string): RealEstateTrade {
@@ -80,6 +83,18 @@ export function sanitizeTrade(raw: Record<string, unknown>, regionCode: string):
   const floorRaw = raw["층"] ?? raw["floor"];
   const floor = floorRaw !== undefined ? Number(floorRaw) : undefined;
 
+  // 지번 추출 — RTMS는 본번/부번 분리 응답. "본번-부번" 형식으로 결합.
+  // 정부 rt.molit.go.kr이 공개하는 동일 수준. 동·호는 정부 마스킹 정책 그대로.
+  const bonbun = String(raw["본번"] ?? raw["bonbun"] ?? "").trim();
+  const bubun = String(raw["부번"] ?? raw["bubun"] ?? "").trim();
+  const jibunRaw = String(raw["지번"] ?? raw["jibun"] ?? "").trim();
+  let jibun: string | undefined;
+  if (jibunRaw) {
+    jibun = jibunRaw;
+  } else if (bonbun) {
+    jibun = bubun && bubun !== "0" ? `${bonbun}-${bubun}` : bonbun;
+  }
+
   return {
     region_code: regionCode,
     region_name,
@@ -88,6 +103,7 @@ export function sanitizeTrade(raw: Record<string, unknown>, regionCode: string):
     price: Number(priceStr),
     trade_date: `${year}-${month}-${day}T00:00:00Z`,
     ...(floor !== undefined && { floor }),
+    ...(jibun && { jibun }),
   };
 }
 
@@ -154,6 +170,7 @@ export function _mockRtmsTrade(overrides: Partial<RealEstateTrade> = {}): RealEs
     price: 250000,
     trade_date: "2024-05-15T00:00:00Z",
     floor: 10,
+    jibun: "736-8",
     ...overrides,
   };
 }

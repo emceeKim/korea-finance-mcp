@@ -79,7 +79,7 @@ npm start  # 또는 npm run start:http for remote deployment
 | 카테고리 | 도구 | 데이터원 | 차별화 |
 |---|---|---|---|
 | **거시 (5)** | `get_indicator` / `search_indicator` / `get_timeseries` / `compare_indicators` / `get_dashboard` | 한국은행 ECOS | KNOWN_INDICATORS 정적 사전 (추측 금지) |
-| **부동산 (4)** | `get_realestate_price` / `get_housing_index` / `get_jeonse_ratio` / **`correlate_macro_realestate`** ⭐ | 국토부 RTMS + R-ONE | dong/ho/jibun 자동 제거 (정부보다 1단계 보수적) |
+| **부동산 (4)** | `get_realestate_price` / `get_housing_index` / `get_jeonse_ratio` / **`correlate_macro_realestate`** ⭐ | 국토부 RTMS + R-ONE | 정부 RTMS 공개 정책 준수 — 지번·층 공개, 동·호 마스킹 (정부 기준 동일) |
 | **주식 (6)** | `get_disclosure` / `get_financials` / `get_stock_price` / `get_market_index` / **`correlate_macro_stock`** ⭐ / **`correlate_stock_realestate`** ⭐⭐ | DART + KRX | **한국 유일** 시너지 (외국 MCP 진입 불가) |
 | **지분공시 (2)** 🆕 v1.1 | `get_major_holdings` (5% 룰) / `get_executive_holdings` (임원·주요주주) | DART DS004 | 자본시장법 §147~149 *조회만*, 해석·예측 X |
 
@@ -266,7 +266,7 @@ curl https://<app-name>.fly.dev/healthz
 | 시너지 도구 2종 (v3.0) | ⭐⭐ correlate_macro_stock + **correlate_stock_realestate** | 없음 (한국 유일) |
 | **자본시장법 4종 영구 잠금** | ✅ CI 코드 정적 차단 | 미확인 (B2B 리스크) |
 | **응답 키워드 차단** (예측/추천/목표주가) | ✅ 회귀 st-10~13 (변경 불가) | 미확인 |
-| 개인정보 dong/ho/jibun 자동 제거 | ✅ 정부보다 1단계 보수적 | 미확인 |
+| 개인정보 dong/ho 자동 제거 | ✅ 국토부 RTMS 공식 마스킹 정책 준수 | 미확인 |
 | 추측 금지 정적 사전 (KNOWN_*) | ✅ API 역검증 통과만 등록 | 직접 추정 케이스 다수 |
 
 → B2B 도입 시 *법무 검토 통과 가장 빠른 옵션*. 자세히: [wiki/korea-finance-mcp/competition-monitoring.md](https://github.com/emceeKim/mywiki/blob/main/wiki/korea-finance-mcp/competition-monitoring.md)
