@@ -1,3 +1,5 @@
+[![MseeP.ai Security Assessment Badge](https://mseep.net/pr/emceekim-korea-finance-mcp-badge.png)](https://mseep.ai/app/emceekim-korea-finance-mcp)
+
 # korea-finance-mcp
 
 > **한국 첫 자본시장법-안전 금융 MCP. 1인 운영. 19 도구. 시너지 2종 (한국 유일).**
