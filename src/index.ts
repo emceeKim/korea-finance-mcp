@@ -20,6 +20,7 @@ import { z } from "zod";
 import { config } from "dotenv";
 
 import { serializeForMcp } from "./lib/response.js";
+import { withMetrics } from "./lib/operational-metrics.js";
 import {
   getIndicatorTool,
   executeGetIndicator,
@@ -359,7 +360,12 @@ server.setRequestHandler(CallToolRequestSchema, async (req) => {
     throw new Error(`[mcp] Unknown tool: ${req.params.name}`);
   }
   try {
-    const result = await tool.execute(req.params.arguments ?? {});
+    const input = req.params.arguments ?? {};
+    const result = await withMetrics(
+      tool.name,
+      extractKeywords(tool.name, input),
+      () => tool.execute(input),
+    );
     // result는 ToolResponse<T> 형태 — serializeForMcp로 변환
     return serializeForMcp(result as Parameters<typeof serializeForMcp>[0]);
   } catch (err) {
@@ -375,6 +381,63 @@ server.setRequestHandler(CallToolRequestSchema, async (req) => {
     };
   }
 });
+
+// ============================================================
+// 운영 메트릭 키워드 추출 (v1.2) — 공개정보만 (지역·매물·종목·지표). 사용자 식별 정보 0.
+// 규약: [[korea-finance-mcp/realestate-demand-collection-design]] §2
+// ============================================================
+function extractKeywords(name: string, input: unknown): string[] {
+  const i = (input ?? {}) as Record<string, unknown>;
+  const s = (v: unknown): string | null =>
+    v === undefined || v === null || v === "" ? null : String(v);
+  let keys: (string | null)[];
+  switch (name) {
+    case "get_realestate_price":
+      keys = [s(i.region_code), s(i.property_type)];
+      break;
+    case "track_apartment_trend":
+      keys = [s(i.region_code), s(i.apt_name), s(i.property_type), s(i.area)];
+      break;
+    case "get_housing_index":
+    case "get_jeonse_ratio":
+      keys = [s(i.region)];
+      break;
+    case "correlate_macro_realestate":
+      keys = [s(i.region), s(i.macro_code)];
+      break;
+    case "get_indicator":
+    case "get_timeseries":
+      keys = [s(i.indicator_code)];
+      break;
+    case "search_indicator":
+      keys = [s(i.query)];
+      break;
+    case "compare_indicators":
+      keys = Array.isArray(i.indicator_codes)
+        ? (i.indicator_codes as unknown[]).map((x) => String(x))
+        : [];
+      break;
+    case "get_stock_price":
+    case "correlate_macro_stock":
+      keys = [s(i.ticker)];
+      break;
+    case "correlate_stock_realestate":
+      keys = [s(i.ticker), s(i.region)];
+      break;
+    case "search_company":
+      keys = [s(i.query) ?? s(i.name)];
+      break;
+    case "get_disclosure":
+    case "get_financials":
+    case "get_major_holdings":
+    case "get_executive_holdings":
+      keys = [s(i.corp_code) ?? s(i.corp_name) ?? s(i.company)];
+      break;
+    default:
+      keys = [];
+  }
+  return keys.filter((k): k is string => Boolean(k));
+}
 
 // ============================================================
 // Zod → JSON Schema (간이 변환 — MCP 표준 응답용)
