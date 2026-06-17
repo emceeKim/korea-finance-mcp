@@ -347,17 +347,19 @@ function buildServer(): Server {
     })),
   }));
 
-  server.setRequestHandler(CallToolRequestSchema, async (req) => {
+  server.setRequestHandler(CallToolRequestSchema, async (req, extra) => {
     const tool = TOOLS.find((t) => t.name === req.params.name);
     if (!tool) {
       throw new Error(`[mcp] Unknown tool: ${req.params.name}`);
     }
     try {
       const input = req.params.arguments ?? {};
+      const sid = (extra as { sessionId?: string } | undefined)?.sessionId;
       const result = await withMetrics(
         tool.name,
         extractKeywords(tool.name, input),
         () => tool.execute(input),
+        { sessionId: sid, clientType: sid ? sessionClientType[sid] : undefined },
       );
       return serializeForMcp(result as Parameters<typeof serializeForMcp>[0]);
     } catch (err) {
@@ -378,6 +380,21 @@ function buildServer(): Server {
 }
 
 // ============================================================
+// 세션 → 클라이언트 종류 맵 (user-agent 파생, 공개정보). 세션 종료 시 폐기.
+// ============================================================
+const sessionClientType: Record<string, string> = {};
+
+function parseClientType(ua: string | undefined): string {
+  if (!ua) return "unknown";
+  const s = ua.toLowerCase();
+  if (s.includes("claude") || s.includes("cowork")) return "claude";
+  if (s.includes("cursor")) return "cursor";
+  if (s.includes("node")) return "node";
+  if (s.includes("python")) return "python";
+  return ua.slice(0, 40);
+}
+
+// ============================================================
 // 운영 메트릭 키워드 추출 — 공개정보만 (지역·매물·종목·지표). 사용자 식별 정보 0.
 // 규약: [[korea-finance-mcp/realestate-demand-collection-design]] §2
 // ============================================================
@@ -389,10 +406,10 @@ function extractKeywords(name: string, input: unknown): string[] {
   switch (name) {
     // 부동산 (설계서 §2 규약)
     case "get_realestate_price":
-      keys = [s(i.region_code), s(i.property_type)];
+      keys = [s(i.region_code), s(i.property_type) ?? "apt"];
       break;
     case "track_apartment_trend":
-      keys = [s(i.region_code), s(i.apt_name), s(i.property_type), s(i.area)];
+      keys = [s(i.region_code), s(i.apt_name), s(i.property_type) ?? "apt", s(i.area)];
       break;
     case "get_housing_index":
     case "get_jeonse_ratio":
@@ -592,6 +609,7 @@ async function main(): Promise<void> {
           sessionIdGenerator: () => randomUUID(),
           onsessioninitialized: (sid: string) => {
             transports[sid] = transport;
+            sessionClientType[sid] = parseClientType(req.headers["user-agent"]);
             scheduleSessionTimeout(sid); // WO-086: 30분 max age
           },
         });
@@ -599,6 +617,7 @@ async function main(): Promise<void> {
           const sid = transport.sessionId;
           if (sid && transports[sid]) {
             delete transports[sid];
+            delete sessionClientType[sid];
             // WO-086: timer 정리
             const timer = sessionTimers.get(sid);
             if (timer) {

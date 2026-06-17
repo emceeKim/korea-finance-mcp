@@ -354,17 +354,19 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
 }));
 
 // call_tool 핸들러
-server.setRequestHandler(CallToolRequestSchema, async (req) => {
+server.setRequestHandler(CallToolRequestSchema, async (req, extra) => {
   const tool = TOOLS.find((t) => t.name === req.params.name);
   if (!tool) {
     throw new Error(`[mcp] Unknown tool: ${req.params.name}`);
   }
   try {
     const input = req.params.arguments ?? {};
+    const sid = (extra as { sessionId?: string } | undefined)?.sessionId;
     const result = await withMetrics(
       tool.name,
       extractKeywords(tool.name, input),
       () => tool.execute(input),
+      { sessionId: sid, clientType: "stdio" },
     );
     // result는 ToolResponse<T> 형태 — serializeForMcp로 변환
     return serializeForMcp(result as Parameters<typeof serializeForMcp>[0]);
@@ -393,10 +395,10 @@ function extractKeywords(name: string, input: unknown): string[] {
   let keys: (string | null)[];
   switch (name) {
     case "get_realestate_price":
-      keys = [s(i.region_code), s(i.property_type)];
+      keys = [s(i.region_code), s(i.property_type) ?? "apt"];
       break;
     case "track_apartment_trend":
-      keys = [s(i.region_code), s(i.apt_name), s(i.property_type), s(i.area)];
+      keys = [s(i.region_code), s(i.apt_name), s(i.property_type) ?? "apt", s(i.area)];
       break;
     case "get_housing_index":
     case "get_jeonse_ratio":
